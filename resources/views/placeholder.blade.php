@@ -1,1 +1,1 @@
-<div>Skeleton placeholder view.</div>
+<div>FormStepper placeholder view.</div>
