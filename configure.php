@@ -1303,7 +1303,7 @@ class LaravelPackageSkeletonConfigurator
     {
         $className = $this->metadata->className();
         $packageSlug = $this->metadata->packageSlug();
-        $tableName = $this->snake($packageSlug).'_placeholder';
+        $tableName = $this->snake($packageSlug);
 
         $toRename = [
             'src/Skeleton.php' => "src/{$className}.php",
@@ -1319,14 +1319,23 @@ class LaravelPackageSkeletonConfigurator
             $this->renamePath($from, $to);
         }
 
-        $migrationPaths = glob($this->rootDir.'/database/migrations/*create_skeleton_placeholder_table.php') ?: [];
+        $migrationPaths = array_merge(
+            glob($this->rootDir.'/database/migrations/*create_skeleton_placeholder_table.php') ?: [],
+            glob($this->rootDir.'/database/migrations/*create_skeleton_forms_tables.php') ?: [],
+        );
 
         foreach ($migrationPaths as $migration) {
+            $migrationName = str_contains(basename($migration), 'create_skeleton_forms_tables')
+                ? 'create_skeleton_forms_tables'
+                : 'create_skeleton_placeholder_table';
+            $newMigrationName = $migrationName === 'create_skeleton_forms_tables'
+                ? "create_{$tableName}_forms_tables"
+                : "create_{$tableName}_placeholder_table";
             $destination = implode('/', [
                 dirname($migration),
                 str_replace(
-                    'create_skeleton_placeholder_table',
-                    "create_{$tableName}_table",
+                    $migrationName,
+                    $newMigrationName,
                     basename($migration),
                 ),
             ]);

@@ -13,29 +13,82 @@ Use this skill when a Laravel application needs to integrate the :package_name p
 
 ## Primary Goal
 
-- apply the `:vendor_slug/:package_slug` package's public API in the smallest correct way
+- Configure application-owned form builders and option models, then use the package API to create,
+  resume, and complete durable forms.
 
 ## Workflow
 
-### 1. Inspect the Laravel app context
+### 1. Install and configure
 
-- confirm the app is a Laravel project
-- inspect the target code paths where the package should be applied
+- Install `:vendor_slug/:package_slug` with Composer.
+- Publish the configuration and migrations with `php artisan vendor:publish --tag=":package_slug-config"` and
+  `php artisan vendor:publish --tag=":package_slug-migrations"`.
+- Set table names and route settings before running `php artisan migrate`.
 
-### 2. Apply the package's public API
+### 2. Register each workflow builder
 
-Document how to integrate :package_name here, replacing this placeholder with the integration steps for your package.
+- Extend `VendorName\Skeleton\Forms\FormBuilder` for each form type.
+- Implement `formType()` and optionally override `mode()`, `steps()`, `resolveOptions()`, and the
+  requester, creator, tenant, authorization, and listing-scope methods.
+- Register each builder class under the `builders` config key.
 
-## Rules, References, and Templates
+### 3. Provide option schemas and scope context
 
-Read before executing:
+- Make application option models implement `ProvidesFormRequirements`. Return stable option keys,
+  requirement steps, required option keys, compatible option keys, and excluded option keys.
+- Make requester and tenant models implement `ProvidesAvailableTypes` when their available form
+  types should restrict the schema.
+- Use stable step and input keys. Configure scope lists with form-type keys; leave a scope null or
+  omit it to allow every type.
+- Correct existing `tenant-types` model class names and duplicate JSON keys before using the
+  compatibility adapter.
 
-- no additional resource files for this skill
+### 4. Connect the UI to the JSON API
+
+- Create a draft with `POST /api/forms`, read or resume it with `GET /api/forms/{uuid}`, save
+  stepper answers with `PUT /api/forms/{uuid}/steps/{step}`, and finish using the review endpoint
+  `POST /api/forms/{uuid}/complete`.
+- Use `POST /api/forms/{uuid}/submit` for single-mode forms. Use
+  `PATCH /api/forms/{uuid}/options` when selected options change.
+- Store the guest `resume_token` securely and return it in `X-Form-Resume-Token` when resuming a
+  guest draft. A logged-in user can claim that draft through the same token.
+- When claiming a draft, the builder's `prefillValues()` hook fills missing requester fields while
+  preserving values the guest already entered.
+- Mark authentication-gated steps with `requires-authentication: true`; guest drafts remain saved
+  but cannot be submitted until claimed by an authenticated requester.
+- Render the returned arrayable schema with the host app's chosen UI; option catalogs and any
+  dynamic choice endpoints remain application-owned.
+
+## References
+
+- `src/Forms/FormBuilder.php`
+- `src/Contracts/ProvidesFormRequirements.php`
+- `src/Contracts/ProvidesAvailableTypes.php`
+- `config/skeleton.php`
+- `routes/skeleton.php`
+- `README_PACKAGE.md`
 
 ## Examples
 
-- describe a representative integration scenario for :package_name
+```php
+final class OrderFormBuilder extends \VendorName\Skeleton\Forms\FormBuilder
+{
+    public function formType(): string
+    {
+        return 'order';
+    }
+
+    public function mode(): string
+    {
+        return 'stepper';
+    }
+}
+```
 
 ## Anti-patterns
 
-- do not document package internals here; keep the skill focused on adoption in Laravel apps
+- Do not trust a client-provided form type, option key, step key, or scope; the package resolves and
+  validates these against server-side builders.
+- Do not expose guest resume tokens in logs or URLs.
+- Do not delete draft forms when a user closes the application.
+- Do not treat a model class name as a form-type scope value.

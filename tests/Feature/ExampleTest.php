@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Route;
 use VendorName\Skeleton\Skeleton;
 
 it('resolves the singleton', function () {
@@ -12,9 +13,16 @@ it('returns the same instance from the container', function () {
     expect(app(Skeleton::class))->toBe(app(Skeleton::class));
 });
 
+it('registers the form API routes', function () {
+    expect(Route::has('skeleton.forms.store'))->toBeTrue()
+        ->and(Route::has('skeleton.forms.steps.save'))->toBeTrue();
+});
+
 /* @chisel-config */
 it('merges the package config', function () {
-    expect(config('skeleton.placeholder'))->toBe('default');
+    expect(config('skeleton.placeholder'))->toBe('default')
+        ->and(config('skeleton.default_mode'))->toBe('single')
+        ->and(config('skeleton.tables.forms'))->toBe('forms');
 });
 /* @end-chisel-config */
 

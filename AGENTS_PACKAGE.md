@@ -9,6 +9,11 @@ This repository is a Laravel package. Keep the package focused, idiomatic, and e
 - Add only the files and dependencies needed for the package behavior being implemented.
 - Prefer explicit Laravel package code over helper abstractions unless the extension point is real.
 - Keep tests focused on observable package behavior through public APIs, service provider wiring, commands, routes, published resources, and documentation promises.
+- Form definitions are application-owned: register a `Forms\FormBuilder` per form type, and have selected option models implement `Contracts\ProvidesFormRequirements`.
+- Requester and tenant models should implement `Contracts\ProvidesAvailableTypes` when their available form types constrain schema scopes.
+- Keep scope checks server-side. `types-scope`, `tenant-types`, and `requester-scope` contain form-type keys; `guest-scope` contains `guest` or `authenticated`. Different scope dimensions are combined, and `null` means unrestricted.
+- Forms are durable drafts until explicitly completed. Preserve step values when selections change if the corresponding step and input keys still exist.
+- The JSON routes are configurable; host applications own authorization, tenant context resolution, and presentation.
 
 ## Quick Commands
 

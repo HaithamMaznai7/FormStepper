@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace VendorName\Skeleton;
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 /* @chisel-commands */
 use VendorName\Skeleton\Console\Commands\SkeletonCommand;
-
 /* @end-chisel-commands */
+use VendorName\Skeleton\Forms\FormBuilderRegistry;
+use VendorName\Skeleton\Support\SchemaNormalizer;
 
 class SkeletonServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,16 @@ class SkeletonServiceProvider extends ServiceProvider
         /* @end-chisel-config */
 
         $this->app->singleton(Skeleton::class);
+        $this->app->singleton(SchemaNormalizer::class);
+        $this->app->singleton(FormBuilderRegistry::class, function (Application $app): FormBuilderRegistry {
+            $registry = new FormBuilderRegistry;
+
+            foreach (config('skeleton.builders', []) as $type => $builderClass) {
+                $registry->register((string) $type, $app->make($builderClass));
+            }
+
+            return $registry;
+        });
     }
 
     /**
