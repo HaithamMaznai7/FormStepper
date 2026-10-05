@@ -1,19 +1,24 @@
 <?php
 
-namespace HaithamMaznai\FormStepper\Interfaces;
+declare(strict_types=1);
 
-// use HaithamMaznai\FormStepper\Enums\RequestType;
+namespace FormStepper\FormStepper\Interfaces;
+
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use UnitEnum;
 
 interface Requester
 {
-  public function requests() : MorphMany;
+    /** @return MorphMany<Model, Model&$this> */
+    public function requests(): MorphMany;
 
-  public function getDefaultRequestType() : mixed;
+    public function getDefaultRequestType(): mixed;
 
-  public function getAvailableRequestTypes() : array;
+    /** @return array<array-key, string|UnitEnum> */
+    public function getAvailableRequestTypes(): array;
 
-  public function getObjectType() : string;
+    public function getObjectType(): string;
 
-  public function getObjectKey();
+    public function getObjectKey(): mixed;
 }

@@ -1,6 +1,8 @@
 <?php
 
-namespace HaithamMaznai\FormStepper\Enums;
+declare(strict_types=1);
+
+namespace FormStepper\FormStepper\Enums;
 
 enum RequestType: string
 {
@@ -10,5 +12,4 @@ enum RequestType: string
     case B2C = 'B2C';
     case B2B = 'B2B';
     case B2Partner = 'B2Partner';
-
 }

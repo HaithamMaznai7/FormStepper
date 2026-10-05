@@ -10,38 +10,69 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $creatorModel = new (config('form-stepper.creator.model'))();
+        $formsTable = config('form-stepper.tables.forms', 'forms');
+        $optionsTable = config('form-stepper.tables.options', 'form_options');
+        $stepsTable = config('form-stepper.tables.steps', 'form_steps');
 
-        Schema::create(config('form-stepper.tables.forms_table_name', 'forms'), function (Blueprint $table) use ($creatorModel) {
+        Schema::create($formsTable, function (Blueprint $table): void {
             $table->id();
-            $table->uuid()->unique();
-            $table->foreignId(config('form-stepper.creator.foreignKey', 'creator_id'))
-                ->nullable()
-                ->constrained($creatorModel->getTable(), config('form-stepper.creator.ownerKey', $creatorModel->getkeyName()))
-                ->onUpdate('cascade')
-                ->onDelete('cascade');
-            $table->nullableMorphs('tenant');
-            $table->nullableMorphs('requester');
-            $table->json('data');
-            $table->string('current_step')->nullable()->default(null);
-
-            if(config('form-stepper.types-enum', null) !== null && class_exists(config('form-stepper.types-enum', null))){
-                $typesEnumClass = config('form-stepper.types-enum', null);
-                $types = collect($typesEnumClass::cases())->map(fn ($case) => $case->value)->toArray();
-            }elseif (is_array(config('form-stepper.types-enum', ['b2c', 'b2b']))) {
-                $types = config('form-stepper.types', ['b2c', 'b2b']);
-                $table->enum('type', $types)->default($types[0]);
-            }else{
-                $table->string('type')->nullable()->default(null);
-            }
-
-            $table->json('extra')->nullable();
+            $table->uuid('uuid')->unique();
+            $table->string('type');
+            $table->string('mode');
+            $this->nullableMorphs($table, 'requester');
+            $this->nullableMorphs($table, 'creator');
+            $this->nullableMorphs($table, 'tenant');
+            $table->string('status')->default('draft');
+            $table->string('current_step')->nullable();
+            $table->json('definition');
+            $table->string('resume_token_hash')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
+            $table->index(['type', 'status']);
+        });
+
+        Schema::create($optionsTable, function (Blueprint $table) use ($formsTable): void {
+            $table->id();
+            $table->foreignId('form_id')->constrained($formsTable)->cascadeOnDelete();
+            $this->morphs($table, 'option');
+            $table->string('option_key');
+            $table->timestamps();
+            $table->unique(['form_id', 'option_type', 'option_id']);
+        });
+
+        Schema::create($stepsTable, function (Blueprint $table) use ($formsTable): void {
+            $table->id();
+            $table->foreignId('form_id')->constrained($formsTable)->cascadeOnDelete();
+            $table->string('step_key');
+            $table->json('values');
+            $table->timestamp('saved_at');
+            $table->timestamps();
+            $table->unique(['form_id', 'step_key']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists(config('form-stepper.tables.forms_table_name', 'forms'));
+        Schema::dropIfExists(config('form-stepper.tables.steps', 'form_steps'));
+        Schema::dropIfExists(config('form-stepper.tables.options', 'form_options'));
+        Schema::dropIfExists(config('form-stepper.tables.forms', 'forms'));
+    }
+
+    private function nullableMorphs(Blueprint $table, string $name): void
+    {
+        $this->morphs($table, $name, true);
+    }
+
+    private function morphs(Blueprint $table, string $name, bool $nullable = false): void
+    {
+        $type = $table->string($name.'_type');
+        $id = $table->string($name.'_id');
+
+        if ($nullable) {
+            $type->nullable();
+            $id->nullable();
+        }
+
+        $table->index([$name.'_type', $name.'_id']);
     }
 };

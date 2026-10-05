@@ -4,6 +4,22 @@ declare(strict_types=1);
 
 return [
     'enabled' => true,
+    'placeholder' => 'default',
+    'default_mode' => 'single',
+    'allow_guest' => true,
+    'allow_instance_mode_override' => false,
+    'tables' => [
+        'forms' => 'forms',
+        'options' => 'form_options',
+        'steps' => 'form_steps',
+    ],
+    'routes' => [
+        'enabled' => true,
+        'prefix' => 'api/forms',
+        'middleware' => ['api'],
+        'name' => 'form-stepper.forms.',
+    ],
+    'builders' => [],
     'types' => [
         'b2c',
         'b2b',
@@ -14,7 +30,7 @@ return [
     'creator' => [
         'model' => "App\Models\User",
         'foreignKey' => 'creator_id',
-        'ownerKey' => 'id'
+        'ownerKey' => 'id',
     ],
     'saleables' => [
     ],

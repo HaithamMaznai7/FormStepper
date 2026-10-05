@@ -1,6 +1,10 @@
 <?php
 
-namespace HaithamMaznai\FormStepper\Supports;
+declare(strict_types=1);
+
+namespace FormStepper\FormStepper\Supports;
+
+use UnitEnum;
 
 class ConfigurationHelper
 {
@@ -19,14 +23,14 @@ class ConfigurationHelper
         return self::isFormTypeEnabled() && class_exists(config('form-stepper.types-enum', null));
     }
 
+    /** @return array<array-key, string|UnitEnum> */
     public static function getFormTypes(): array
     {
         if (self::isFormTypeEnumerated()) {
             return class_exists(config('form-stepper.types', null)) ? config('form-stepper.types-enum', null)::cases() : [];
-        }elseif (is_array(config('form-stepper.types', ['b2c', 'b2b']))) {
+        } elseif (is_array(config('form-stepper.types', ['b2c', 'b2b']))) {
             return config('form-stepper.types', ['b2c', 'b2b']);
-        }else{
-
+        } else {
         }
 
         return config('form-stepper.types', null);
@@ -34,6 +38,6 @@ class ConfigurationHelper
 
     public static function getConfigValue(string $key, mixed $default = null): mixed
     {
-        return config('form-stepper.' . $key, $default);
+        return config('form-stepper.'.$key, $default);
     }
 }

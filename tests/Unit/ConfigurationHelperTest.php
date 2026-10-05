@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use HaithamMaznai\FormStepper\Supports\ConfigurationHelper;
+use FormStepper\FormStepper\Supports\ConfigurationHelper;
 
 it('is true', function () {
     // info(config('form-stepper.enabled', false));

@@ -1,134 +1,104 @@
 <?php
 
-namespace HaithamMaznai\FormStepper\Models;
+declare(strict_types=1);
 
-use HaithamMaznai\FormStepper\Enums\RequestType;
-use HaithamMaznai\FormStepper\Interfaces\Requester;
+namespace FormStepper\FormStepper\Models;
+
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $uuid
+ * @property string $type
+ * @property string $mode
+ * @property string $status
+ * @property string|null $current_step
+ * @property array<string, mixed> $definition
+ * @property string|null $resume_token_hash
+ * @property Carbon|null $completed_at
+ * @property-read Model|null $requester
+ * @property-read Model|null $creator
+ * @property-read Model|null $tenant
+ * @property-read Collection<int, FormOption> $selectedOptions
+ * @property-read Collection<int, FormStep> $steps
+ */
 class Form extends Model
 {
+    protected $fillable = [
+        'uuid',
+        'type',
+        'mode',
+        'requester_type',
+        'requester_id',
+        'creator_type',
+        'creator_id',
+        'tenant_type',
+        'tenant_id',
+        'status',
+        'current_step',
+        'definition',
+        'resume_token_hash',
+        'completed_at',
+    ];
 
-  public function getTable(): string
-  {
-    return config('form-stepper.tables.forms_table_name', 'forms');
-  }
-
-//   protected $fillable = ['creator_id', 'tenant_type', 'tenant_id', 'requester_type', 'requester_id', 'data', 'current_step', 'type', 'extra'];
-
-  protected $casts = [
-    'data' => 'array'
-  ];
-
-//   protected $appends = [
-//     'values'
-//   ];
-
-//   public function getValuesAttribute()
-//   {
-//     return json_decode($this->data, true);
-//   }
-
-  protected static function boot()
-  {
-    parent::boot();
-
-    static::creating(function ($model) {
-      $model->uuid = Str::uuid();
-      $model->data ??= json_encode([]);
-    });
-  }
-
-  public function tenant() : MorphTo
-  {
-    return $this->morphTo('tenant', 'tenant_type', 'tenant_id');
-  }
-
-  public function requester() : MorphTo
-  {
-    return $this->morphTo('requester', 'requester_type', 'requester_id');
-  }
-
-  public function creator() : BelongsTo
-  {
-    $creatorModel = new (config('form-stepper.creator.model'))();
-    $foreignKey = config('form-stepper.creator.foreignKey', 'creator_id');
-    $ownerKey = config('form-stepper.creator.ownerKey', $creatorModel->getkeyName());
-
-    return $this->belongsTo($creatorModel::class, $foreignKey, $ownerKey);
-  }
-
-  public function scopeGuest($query)
-  {
-    $foreignKey = config('form-stepper.creator.foreignKey', 'creator_id');
-
-    $query->whereNull($foreignKey)
-    ->whereNull('tenant_id')
-    ->whereNull('tenant_type')
-    ->whereNull('requester_id')
-    ->whereNull('requester_type');
-  }
-
-  public function scopeBy($query, $user = null)
-  {
-    $creatorModel = new (config('form-stepper.creator.model'))();
-    $foreignKey = config('form-stepper.creator.foreignKey', 'creator_id');
-    $ownerKey = config('form-stepper.creator.ownerKey', $creatorModel->getkeyName());
-
-    $query->where($foreignKey, $user?->$ownerKey);
-  }
-
-  public function scopeOnTenant($query, Requester $tenant)
-  {
-    $query->where('tenant_type', $tenant->getObjectType())->where('tenant_id', $tenant->getObjectKey());
-  }
-
-  public function scopeFor($query, Requester $requester)
-  {
-    $query->where('requester_type', $requester->getObjectType())->where('requester_id', $requester->getObjectKey());
-  }
-
-  public function scopeIn($query, RequestType $type = RequestType::Customer)
-  {
-    $query->where('type', $type->cases());
-  }
-
-  public function scopeUuid($query, $uuid = null)
-  {
-    $query->where('uuid', $uuid);
-  }
-
-  // public function products()
-  // {
-  //   return $this->morphedByMany(Product::class, 'saleable');
-  // }
-
-  public function saleables(): array
-  {
-
-    $saleables = [];
-
-    foreach(config('business_steper.saleables') as $alias => $model){
-      $saleables[$alias] = $this->morphedByMany($model, 'saleable')->withPivot(['qty']);
+    protected function casts(): array
+    {
+        return [
+            'definition' => 'array',
+            'completed_at' => 'datetime',
+        ];
     }
 
-    return $saleables;
-  }
-
-  public function allSaleables(): Collection
-  {
-
-    $saleables = $this->saleables();
-    $all = collect([]);
-
-    foreach($saleables as $model){
-      $all = $all->merge($model->get());
+    public function getTable(): string
+    {
+        return (string) config('form-stepper.tables.forms', 'forms');
     }
 
-    return $all;
-  }
+    /** @return MorphTo<Model, $this> */
+    public function requester(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /** @return MorphTo<Model, $this> */
+    public function creator(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /** @return MorphTo<Model, $this> */
+    public function tenant(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /** @return HasMany<FormOption, $this> */
+    public function selectedOptions(): HasMany
+    {
+        return $this->hasMany(FormOption::class);
+    }
+
+    /** @return HasMany<FormStep, $this> */
+    public function steps(): HasMany
+    {
+        return $this->hasMany(FormStep::class);
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function valuesByStep(): array
+    {
+        $values = [];
+
+        foreach ($this->steps as $step) {
+            $values[$step->step_key] = $step->values;
+        }
+
+        return $values;
+    }
 }
