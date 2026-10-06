@@ -53,10 +53,22 @@ it('loads a published route file instead of the bundled routes', function () {
 });
 
 it('does not reload a published route file when routes are cached', function () {
-    $this->app->instance('routes.cached', true);
-    Route::setRoutes(new RouteCollection);
-    (new FormStepperServiceProvider($this->app))->boot();
-    expect(Route::getRoutes()->count())->toBe(0);
+    // A real cache file works across Laravel 11+, unlike the newer `routes.cached` binding.
+    $cacheFile = 'form-stepper-routes-cache-'.bin2hex(random_bytes(8)).'.php';
+    $_SERVER['APP_ROUTES_CACHE'] = $cacheFile;
+    file_put_contents(base_path($cacheFile), '<?php');
+    $this->app->forgetInstance('routes.cached');
+
+    try {
+        expect($this->app->routesAreCached())->toBeTrue();
+        Route::setRoutes(new RouteCollection);
+        (new FormStepperServiceProvider($this->app))->boot();
+        expect(Route::getRoutes()->count())->toBe(0);
+    } finally {
+        unset($_SERVER['APP_ROUTES_CACHE']);
+        unlink(base_path($cacheFile));
+        $this->app->forgetInstance('routes.cached');
+    }
 });
 
 it('does not load bundled or published form routes when disabled', function () {

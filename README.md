@@ -34,7 +34,7 @@ There is no tagged package release documented here yet; the instructions below i
 ## Requirements
 
 - PHP **8.3 or later** within PHP 8.x.
-- Laravel **12 or 13**. Laravel 11 is not supported by the current Composer constraints.
+- Laravel **11, 12, or 13**.
 - A database supported by Laravel; configure it before running migrations.
 
 The package uses Laravel's database, HTTP, routing, support, and validation components.
@@ -891,7 +891,7 @@ renderer is registered by default.
 | Problem | Check |
 |---|---|
 | Composer cannot find the package | Add the GitHub VCS repository and use the exact new name plus `dev-main`. |
-| Composer rejects Laravel/PHP versions | Use Laravel 12/13 and PHP 8.3+; do not bypass platform/security checks. |
+| Composer rejects Laravel/PHP versions | Use Laravel 11/12/13 and PHP 8.3+; do not bypass platform checks. |
 | Builder not registered | Register its class under `builders` and match its `formType()` key. |
 | Guest request returns 403 | Keep the creation token and send it in `X-Form-Resume-Token`. |
 | Logged-in user appears as guest | Configure session/API guard middleware for the package routes. |
