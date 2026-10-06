@@ -5,7 +5,7 @@ This repository is a Laravel package. Keep the package focused, idiomatic, and e
 ## Package Conventions
 
 - Use Laravel-native package APIs and the existing service provider shape before adding abstractions.
-- Keep package names, namespaces, Composer metadata, publish tags, documentation, and examples aligned with `haitham-maznai/form-stepper`.
+- Keep package names, namespaces, Composer metadata, publish tags, documentation, and examples aligned with `haithammaznai7/form-stepper` and `HaithamMaznai7/FormStepper`.
 - Add only the files and dependencies needed for the package behavior being implemented.
 - Prefer explicit Laravel package code over helper abstractions unless the extension point is real.
 - Keep tests focused on observable package behavior through public APIs, service provider wiring, commands, routes, published resources, and documentation promises.
@@ -14,6 +14,9 @@ This repository is a Laravel package. Keep the package focused, idiomatic, and e
 - Keep scope checks server-side. `types-scope`, `tenant-types`, and `requester-scope` contain form-type keys; `guest-scope` contains `guest` or `authenticated`. Different scope dimensions are combined, and `null` means unrestricted.
 - Forms are durable drafts until explicitly completed. Preserve step values when selections change if the corresponding step and input keys still exist.
 - The JSON routes are configurable; host applications own authorization, tenant context resolution, and presentation.
+- Forms have requester ownership and optional tenant ownership, never creator ownership. `TenantForm::forms()` is the tenant morph relationship; resolve the current tenant through `tenant.relationship` only when enabled.
+- Default access is requester + current tenant context. Guests have null identities and require a resume token even when listing forms.
+- Use `current_step_id` string keys and `draft`/`submitted` statuses. Test databases must remain isolated in-memory SQLite, never a Workbench/application database.
 
 ## Quick Commands
 

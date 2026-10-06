@@ -15,6 +15,11 @@
     cacheDirectory=".phpunit.cache"
     backupStaticProperties="false"
 >
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="DB_CONNECTION" value="testing" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+    </php>
     <testsuites>
         <testsuite name="Arch">
             <file>tests/ArchTest.php</file>

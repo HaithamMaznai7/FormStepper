@@ -20,10 +20,12 @@ return new class extends Migration
             $table->string('type');
             $table->string('mode');
             $this->nullableMorphs($table, 'requester');
-            $this->nullableMorphs($table, 'creator');
-            $this->nullableMorphs($table, 'tenant');
-            $table->string('status')->default('draft');
-            $table->string('current_step')->nullable();
+
+            if (config('form-stepper.tenant.enabled', false)) {
+                $this->nullableMorphs($table, 'tenant');
+            }
+            $table->enum('status', ['draft', 'submitted'])->default('draft');
+            $table->string('current_step_id')->nullable();
             $table->json('definition');
             $table->string('resume_token_hash')->nullable();
             $table->timestamp('completed_at')->nullable();

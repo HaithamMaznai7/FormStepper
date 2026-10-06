@@ -39,7 +39,7 @@ class FormResult implements Arrayable
         $currentStep = null;
 
         foreach ($definition['steps'] ?? [] as $step) {
-            if ($step['key'] === $this->form->current_step) {
+            if ($step['key'] === $this->form->current_step_id) {
                 $currentStep = $step;
 
                 break;
@@ -51,7 +51,7 @@ class FormResult implements Arrayable
             'type' => $this->form->type,
             'mode' => $this->form->mode,
             'status' => $this->form->status,
-            'current_step' => $this->form->current_step,
+            'current_step_id' => $this->form->current_step_id,
             'requires_authentication' => (bool) ($currentStep['requires_authentication'] ?? false),
             'authentication_required' => $this->form->requester === null &&
                 (bool) ($definition['has_authentication_required_steps'] ?? false),

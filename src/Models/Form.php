@@ -16,12 +16,11 @@ use Illuminate\Support\Carbon;
  * @property string $type
  * @property string $mode
  * @property string $status
- * @property string|null $current_step
+ * @property string|null $current_step_id
  * @property array<string, mixed> $definition
  * @property string|null $resume_token_hash
  * @property Carbon|null $completed_at
  * @property-read Model|null $requester
- * @property-read Model|null $creator
  * @property-read Model|null $tenant
  * @property-read Collection<int, FormOption> $selectedOptions
  * @property-read Collection<int, FormStep> $steps
@@ -34,12 +33,10 @@ class Form extends Model
         'mode',
         'requester_type',
         'requester_id',
-        'creator_type',
-        'creator_id',
         'tenant_type',
         'tenant_id',
         'status',
-        'current_step',
+        'current_step_id',
         'definition',
         'resume_token_hash',
         'completed_at',
@@ -60,12 +57,6 @@ class Form extends Model
 
     /** @return MorphTo<Model, $this> */
     public function requester(): MorphTo
-    {
-        return $this->morphTo();
-    }
-
-    /** @return MorphTo<Model, $this> */
-    public function creator(): MorphTo
     {
         return $this->morphTo();
     }

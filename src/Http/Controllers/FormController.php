@@ -25,7 +25,7 @@ class FormController
     {
         $data = $request->validate([
             'type' => ['required', 'string'],
-            'status' => ['sometimes', 'in:draft,completed'],
+            'status' => ['sometimes', 'in:draft,submitted'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
         $builder = $this->builders->resolve($data['type']);
@@ -87,7 +87,6 @@ class FormController
             $builder,
             $optionKeys,
             $builder->requester($request),
-            $builder->creator($request),
             $builder->tenant($request),
             $data['mode'] ?? null,
         );
@@ -183,7 +182,7 @@ class FormController
                 throw new InvalidArgumentException('The authenticated requester could not be resolved.');
             }
 
-            $this->forms->claimGuest($form, $requester, $builder);
+            $this->forms->claimGuest($form, $requester, $builder, $builder->tenant($request));
         }
 
         $builder->authorize($ability, $request, $form->refresh());

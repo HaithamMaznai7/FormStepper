@@ -1,13 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "haitham-maznai/form-stepper",
-    "description": "",
+    "name": "haithammaznai7/form-stepper",
+    "description": "Persistent, option-driven single-step and stepper forms for Laravel with requester and optional tenant ownership.",
     "keywords": [
         "laravel",
-        "haitham-maznai",
+        "haithammaznai7",
         "form-stepper"
     ],
-    "homepage": "https://github.com/haitham-maznai/form-stepper",
+    "homepage": "https://github.com/HaithamMaznai7/FormStepper",
     "license": "MIT",
     "authors": [
         {

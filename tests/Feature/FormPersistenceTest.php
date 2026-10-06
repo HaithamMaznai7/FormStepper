@@ -18,24 +18,20 @@ beforeEach(function () {
 });
 
 it('uses the configured forms table in the preserved form items migration', function () {
-    config()->set('form-stepper.tables.forms', 'custom_forms');
-    config()->set('form-stepper.tables.options', 'custom_options');
-    config()->set('form-stepper.tables.steps', 'custom_steps');
-    config()->set('form-stepper.tables.form_items_table_name', 'custom_items');
+    config()->set('form-stepper.tables.forms', 'requests');
+    config()->set('form-stepper.tables.options', 'saleables');
+    config()->set('form-stepper.tables.steps', 'request_steps');
 
     $formsMigration = require __DIR__.'/../../database/migrations/2026_01_01_000000_create_forms_table.php';
-    $itemsMigration = require __DIR__.'/../../database/migrations/2026_01_01_000002_create_form_items_table.php';
     $formsMigration->up();
-    $itemsMigration->up();
 
-    expect(Schema::hasTable('custom_items'))->toBeTrue()
-        ->and(Schema::getForeignKeys('custom_items')[0]['foreign_table'])->toBe('custom_forms');
+    expect(Schema::hasTable('saleables'))->toBeTrue()
+        ->and(Schema::getForeignKeys('saleables')[0]['foreign_table'])->toBe('requests');
 
-    $itemsMigration->down();
     $formsMigration->down();
 
-    expect(Schema::hasTable('custom_items'))->toBeFalse()
-        ->and(Schema::hasTable('custom_forms'))->toBeFalse();
+    expect(Schema::hasTable('saleables'))->toBeFalse()
+        ->and(Schema::hasTable('requests'))->toBeFalse();
 });
 
 it('persists step values and resumes a draft after loading it again', function () {
@@ -63,21 +59,21 @@ it('persists step values and resumes a draft after loading it again', function (
     };
 
     $service = app(FormService::class);
-    $created = $service->create($builder, [], null, null, null);
+    $created = $service->create($builder, [], null, null);
 
-    expect($created['form']->current_step)->toBe('applicant')
+    expect($created['form']->current_step_id)->toBe('applicant')
         ->and($created['resume_token'])->toBeString();
 
     $service->saveStep($created['form'], 'applicant', ['name' => 'Ada']);
 
     $resumed = Form::query()->where('uuid', $created['form']->uuid)->firstOrFail();
 
-    expect($resumed->current_step)->toBe('review')
+    expect($resumed->current_step_id)->toBe('review')
         ->and($resumed->steps()->firstOrFail()->values)->toBe(['name' => 'Ada']);
 
     $service->complete($resumed);
 
-    expect($resumed->refresh()->status)->toBe('completed');
+    expect($resumed->refresh()->status)->toBe('submitted');
 });
 
 it('preserves values for unchanged steps when selected options are recomputed', function () {
@@ -105,14 +101,14 @@ it('preserves values for unchanged steps when selected options are recomputed', 
     };
 
     $service = app(FormService::class);
-    $created = $service->create($builder, [], null, null, null);
+    $created = $service->create($builder, [], null, null);
     $service->saveStep($created['form'], 'applicant', ['name' => 'Ada']);
 
     $service->updateOptions($created['form'], $builder, []);
     $savedStep = $created['form']->refresh()->steps()->firstOrFail();
 
     expect($savedStep->values)->toBe(['name' => 'Ada'])
-        ->and($created['form']->current_step)->toBe('review');
+        ->and($created['form']->current_step_id)->toBe('review');
 });
 
 it('creates and resumes a guest draft through the JSON API with its resume token', function () {
@@ -143,7 +139,7 @@ it('creates and resumes a guest draft through the JSON API with its resume token
 
     $created = $this->postJson('/api/forms', ['type' => 'api-application'])
         ->assertCreated()
-        ->assertJsonPath('current_step', 'applicant')
+        ->assertJsonPath('current_step_id', 'applicant')
         ->json();
 
     $this->getJson('/api/forms/'.$created['id'])
@@ -153,7 +149,7 @@ it('creates and resumes a guest draft through the JSON API with its resume token
         '/api/forms/'.$created['id'].'/steps/applicant',
         ['values' => ['name' => 'Ada']],
         ['X-Form-Resume-Token' => $created['resume_token']],
-    )->assertOk()->assertJsonPath('current_step', 'review');
+    )->assertOk()->assertJsonPath('current_step_id', 'review');
 
     $this->getJson('/api/forms/'.$created['id'], [
         'X-Form-Resume-Token' => $created['resume_token'],
@@ -195,7 +191,6 @@ it('stores builder-provided requester values as a draft prefill', function () {
     $created = app(FormService::class)->create(
         $builder,
         [],
-        $requester,
         $requester,
         null,
     );
@@ -281,13 +276,13 @@ it('recomputes selected option requirements without discarding compatible saved 
     };
 
     $service = app(FormService::class);
-    $created = $service->create($builder, ['name-option'], null, null, null);
+    $created = $service->create($builder, ['name-option'], null, null);
     $service->saveStep($created['form'], 'profile', ['name' => 'Ada']);
 
     $service->updateOptions($created['form'], $builder, ['name-option', 'email-option']);
 
     expect($created['form']->refresh()->steps()->firstOrFail()->values)->toBe(['name' => 'Ada'])
-        ->and($created['form']->current_step)->toBe('profile');
+        ->and($created['form']->current_step_id)->toBe('profile');
 });
 
 it('fills missing guest draft values after login without overwriting entered values', function () {
@@ -322,7 +317,7 @@ it('fills missing guest draft values after login without overwriting entered val
         }
     };
     $service = app(FormService::class);
-    $created = $service->create($builder, [], null, null, null);
+    $created = $service->create($builder, [], null, null);
     $service->saveStep($created['form'], 'applicant', ['name' => 'Entered Name']);
 
     $requester = new class extends Model {};
@@ -379,7 +374,7 @@ it('adds authenticated-only steps when a guest draft is claimed after login', fu
         }
     };
     $service = app(FormService::class);
-    $created = $service->create($builder, [], null, null, null);
+    $created = $service->create($builder, [], null, null);
     $service->saveStep($created['form'], 'guest-details', ['description' => 'Need a permit']);
 
     expect(array_column($created['form']->definition['steps'], 'key'))->toBe(['guest-details']);
@@ -395,7 +390,7 @@ it('adds authenticated-only steps when a guest draft is claimed after login', fu
 
     expect(array_column($claimed->definition['steps'], 'key'))
         ->toBe(['account-details'])
-        ->and($claimed->current_step)->toBe('account-details')
+        ->and($claimed->current_step_id)->toBe('account-details')
         ->and($claimed->valuesByStep()['account-details']['email'])->toBe('ada@example.test');
 });
 
@@ -426,12 +421,12 @@ it('does not require authentication for steps outside the active form type scope
     };
 
     $service = app(FormService::class);
-    $created = $service->create($builder, [], null, null, null);
+    $created = $service->create($builder, [], null, null);
     $service->saveStep($created['form'], 'guest-details', []);
 
     expect($created['result']->toArray()['authentication_required'])->toBeFalse()
         ->and($service->complete(Form::query()->findOrFail($created['form']->getKey()))->toArray()['status'])
-        ->toBe('completed');
+        ->toBe('submitted');
 });
 
 it('rejects values outside the active input schema without advancing the draft', function () {
@@ -457,7 +452,7 @@ it('rejects values outside the active input schema without advancing the draft',
             ]];
         }
     };
-    $created = app(FormService::class)->create($builder, [], null, null, null);
+    $created = app(FormService::class)->create($builder, [], null, null);
 
     expect(fn () => app(FormService::class)->saveStep(
         $created['form'],
@@ -465,7 +460,7 @@ it('rejects values outside the active input schema without advancing the draft',
         ['name' => 'Ada', 'admin' => true],
     ))->toThrow(ValidationException::class);
 
-    expect($created['form']->refresh()->current_step)->toBe('applicant')
+    expect($created['form']->refresh()->current_step_id)->toBe('applicant')
         ->and($created['form']->steps()->count())->toBe(0);
 });
 
@@ -493,7 +488,7 @@ it('requires authentication on explicitly gated steps', function () {
             ]];
         }
     };
-    $created = app(FormService::class)->create($builder, [], null, null, null);
+    $created = app(FormService::class)->create($builder, [], null, null);
 
     expect(fn () => app(FormService::class)->saveStep(
         $created['form'],
@@ -520,12 +515,12 @@ it('stores and completes all step values for a single-mode form in one submissio
             ]];
         }
     };
-    $created = app(FormService::class)->create($builder, [], null, null, null);
+    $created = app(FormService::class)->create($builder, [], null, null);
 
     app(FormService::class)->submitSingle($created['form'], [
         'applicant' => ['name' => 'Ada'],
     ]);
 
-    expect($created['form']->refresh()->status)->toBe('completed')
+    expect($created['form']->refresh()->status)->toBe('submitted')
         ->and($created['form']->valuesByStep())->toBe(['applicant' => ['name' => 'Ada']]);
 });

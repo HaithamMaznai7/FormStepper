@@ -11,6 +11,7 @@ use FormStepper\FormStepper\Forms\FormResult;
 use FormStepper\FormStepper\Models\Form;
 use FormStepper\FormStepper\Models\FormOption;
 use FormStepper\FormStepper\Models\FormStep;
+use FormStepper\FormStepper\Support\FormOwnership;
 use FormStepper\FormStepper\Support\SchemaAssembler;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -36,10 +37,10 @@ class FormService
         FormBuilder $builder,
         array $optionKeys,
         ?Model $requester,
-        ?Model $creator,
         ?Model $tenant,
         ?string $requestedMode = null,
     ): array {
+        FormOwnership::validate($requester, $tenant);
         $options = $this->resolveOptions($builder, $optionKeys);
         $guest = $requester === null;
         $mode = $builder->resolveMode($requestedMode);
@@ -54,27 +55,29 @@ class FormService
             $definition,
             $options,
             $requester,
-            $creator,
             $tenant,
             $builder,
             $token,
             $firstStep,
         ): Form {
-            $form = Form::create([
+            $attributes = [
                 'uuid' => (string) Str::uuid(),
                 'type' => $definition->type,
                 'mode' => $definition->mode,
                 'requester_type' => $requester?->getMorphClass(),
                 'requester_id' => $requester?->getKey(),
-                'creator_type' => $creator?->getMorphClass(),
-                'creator_id' => $creator?->getKey(),
-                'tenant_type' => $tenant?->getMorphClass(),
-                'tenant_id' => $tenant?->getKey(),
                 'status' => 'draft',
-                'current_step' => $firstStep,
+                'current_step_id' => $firstStep,
                 'definition' => $definition->toArray(),
                 'resume_token_hash' => $token === null ? null : password_hash($token, PASSWORD_DEFAULT),
-            ]);
+            ];
+
+            if (FormOwnership::tenantEnabled()) {
+                $attributes['tenant_type'] = $tenant?->getMorphClass();
+                $attributes['tenant_id'] = $tenant?->getKey();
+            }
+
+            $form = Form::create($attributes);
 
             foreach ($options as $option) {
                 FormOption::create([
@@ -133,7 +136,7 @@ class FormService
             $form->definition = $definition->toArray();
             $this->retainCompatibleValues($form, $previousDefinition['steps'] ?? [], $definition->steps);
             $form->unsetRelation('steps');
-            $form->current_step = $form->mode === 'stepper'
+            $form->current_step_id = $form->mode === 'stepper'
                 ? $this->nextRequiredStep($form, $definition->steps)
                 : null;
             $form->save();
@@ -153,7 +156,7 @@ class FormService
             $form = Form::query()->lockForUpdate()->whereKey($form->getKey())->firstOrFail();
             $this->assertDraft($form);
 
-            if ($form->mode !== 'stepper' || $form->current_step !== $stepKey) {
+            if ($form->mode !== 'stepper' || $form->current_step_id !== $stepKey) {
                 throw new ConflictHttpException('Only the current step of a stepper form can be saved.');
             }
 
@@ -178,7 +181,7 @@ class FormService
 
             $stepKeys = array_column($form->definition['steps'] ?? [], 'key');
             $position = array_search($stepKey, $stepKeys, true);
-            $form->current_step = $stepKeys[$position + 1] ?? 'review';
+            $form->current_step_id = $stepKeys[$position + 1] ?? 'review';
             $form->save();
 
             return $form;
@@ -238,7 +241,7 @@ class FormService
                 );
             }
 
-            $form->status = 'completed';
+            $form->status = 'submitted';
             $form->completed_at = now();
             $form->save();
 
@@ -254,7 +257,7 @@ class FormService
             $form = Form::query()->lockForUpdate()->whereKey($form->getKey())->firstOrFail();
             $this->assertDraft($form);
 
-            if ($form->mode !== 'stepper' || $form->current_step !== 'review') {
+            if ($form->mode !== 'stepper' || $form->current_step_id !== 'review') {
                 throw new ConflictHttpException('A stepper form can only be completed from its review step.');
             }
 
@@ -279,7 +282,7 @@ class FormService
                 $this->validateStep($step, $savedStep->values ?? []);
             }
 
-            $form->status = 'completed';
+            $form->status = 'submitted';
             $form->completed_at = now();
             $form->save();
 
@@ -289,17 +292,27 @@ class FormService
         return new FormResult($updatedForm->load(['steps', 'selectedOptions']));
     }
 
-    public function claimGuest(Form $form, Model $requester, FormBuilder $builder): void
+    public function claimGuest(Form $form, Model $requester, FormBuilder $builder, ?Model $tenant = null): void
     {
-        DB::transaction(function () use ($form, $requester, $builder): void {
+        FormOwnership::validate($requester, $tenant);
+        DB::transaction(function () use ($form, $requester, $builder, $tenant): void {
             $form = Form::query()->lockForUpdate()->whereKey($form->getKey())->firstOrFail();
 
-            if ($form->requester !== null) {
+            if (
+                $form->getAttribute('requester_type') !== null ||
+                $form->getAttribute('requester_id') !== null ||
+                $form->getAttribute('tenant_type') !== null ||
+                $form->getAttribute('tenant_id') !== null
+            ) {
                 throw new ConflictHttpException('Only a guest form can be claimed.');
             }
 
             $previousSteps = $form->definition['steps'] ?? [];
             $form->requester()->associate($requester);
+
+            if (FormOwnership::tenantEnabled()) {
+                $form->tenant()->associate($tenant);
+            }
             $form->resume_token_hash = null;
             $form->save();
 
@@ -321,7 +334,7 @@ class FormService
             $form->definition = $definition->toArray();
             $this->retainCompatibleValues($form, $previousSteps, $definition->steps);
             $form->unsetRelation('steps');
-            $form->current_step = $form->mode === 'stepper'
+            $form->current_step_id = $form->mode === 'stepper'
                 ? $this->nextRequiredStep($form, $definition->steps)
                 : null;
             $form->save();

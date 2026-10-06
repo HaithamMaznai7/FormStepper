@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace FormStepper\FormStepper\Forms;
 
 use FormStepper\FormStepper\Models\Form;
+use FormStepper\FormStepper\Support\FormOwnership;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 abstract class FormBuilder
@@ -61,21 +64,36 @@ abstract class FormBuilder
 
     public function requester(Request $request): ?Model
     {
-        $user = $request->user();
-
-        return $user instanceof Model ? $user : null;
-    }
-
-    public function creator(Request $request): ?Model
-    {
-        $user = $request->user();
-
-        return $user instanceof Model ? $user : null;
+        return FormOwnership::requester($request->user());
     }
 
     public function tenant(Request $request): ?Model
     {
-        return null;
+        $user = $this->requester($request);
+
+        if (! FormOwnership::tenantEnabled() || $user === null) {
+            return null;
+        }
+
+        $relationship = config('form-stepper.tenant.relationship', 'currentTenant');
+
+        if (! is_string($relationship) || $relationship === '' || ! $user->isRelation($relationship)) {
+            throw new InvalidArgumentException('Configure a valid current tenant relationship on the requester model.');
+        }
+
+        if (! $user->{$relationship}() instanceof Relation) {
+            throw new InvalidArgumentException('The current tenant method must return an Eloquent relationship.');
+        }
+
+        $tenant = $user->getRelationValue($relationship);
+
+        if ($tenant !== null && ! $tenant instanceof Model) {
+            throw new InvalidArgumentException('The current tenant relationship must resolve to one model or null.');
+        }
+
+        FormOwnership::validate($user, $tenant);
+
+        return $tenant;
     }
 
     /**
@@ -98,6 +116,8 @@ abstract class FormBuilder
             }
 
             if ($user instanceof Model && $this->requester($request)?->is($user)) {
+                $this->tenant($request);
+
                 return;
             }
 
@@ -105,7 +125,7 @@ abstract class FormBuilder
         }
 
         if ($form !== null && $user instanceof Model) {
-            if ($form->requester?->is($user) || $form->creator?->is($user)) {
+            if ($this->scopeForms(Form::query()->whereKey($form->getKey()), $request)->exists()) {
                 return;
             }
         }
@@ -122,13 +142,48 @@ abstract class FormBuilder
         $user = $request->user();
 
         if (! $user instanceof Model) {
-            return $query->whereRaw('1 = 0');
+            $query->whereNull('requester_type')->whereNull('requester_id');
+
+            if (FormOwnership::tenantEnabled() || Schema::hasColumn($query->getModel()->getTable(), 'tenant_type')) {
+                $query->whereNull('tenant_type')->whereNull('tenant_id');
+            }
+
+            $token = $request->header('X-Form-Resume-Token');
+
+            if (! is_string($token) || $token === '') {
+                abort(403);
+            }
+
+            $id = null;
+
+            foreach ((clone $query)->whereNotNull('resume_token_hash')->cursor() as $form) {
+                if (password_verify($token, $form->resume_token_hash)) {
+                    $id = $form->getKey();
+
+                    break;
+                }
+            }
+
+            if ($id === null) {
+                abort(403);
+            }
+
+            return $query->whereKey($id);
         }
 
-        return $query->where(function (EloquentBuilder $query) use ($user): void {
-            $query->whereMorphedTo('requester', $user)
-                ->orWhereMorphedTo('creator', $user);
-        });
+        $query->whereMorphedTo('requester', $user);
+
+        if (FormOwnership::tenantEnabled() || Schema::hasColumn($query->getModel()->getTable(), 'tenant_type')) {
+            $tenant = $this->tenant($request);
+
+            if ($tenant === null) {
+                $query->whereNull('tenant_type')->whereNull('tenant_id');
+            } else {
+                $query->whereMorphedTo('tenant', $tenant);
+            }
+        }
+
+        return $query;
     }
 
     public function authorizeGuestResume(Request $request, Form $form): void
@@ -136,6 +191,10 @@ abstract class FormBuilder
         $token = $request->header('X-Form-Resume-Token');
 
         if (
+            $form->getAttribute('requester_type') !== null ||
+            $form->getAttribute('requester_id') !== null ||
+            $form->getAttribute('tenant_type') !== null ||
+            $form->getAttribute('tenant_id') !== null ||
             ! is_string($token) ||
             $form->resume_token_hash === null ||
             ! password_verify($token, $form->resume_token_hash)
