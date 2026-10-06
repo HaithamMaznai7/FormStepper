@@ -68,13 +68,17 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 - Create a draft with `POST /api/forms`, read or resume it with `GET /api/forms/{uuid}`, save
   stepper answers with `PUT /api/forms/{uuid}/steps/{step}`, and finish using the review endpoint
   `POST /api/forms/{uuid}/complete`.
-- Use `POST /api/forms/{uuid}/submit` for single-mode forms. Use
+- Use `POST /api/forms/{uuid}/submit` for single-mode forms. Single-mode responses expose groups as
+  `definition.containers` and omit `current_step_id` and `requires_authentication`. Use
   `PATCH /api/forms/{uuid}/options` when selected options change.
 - Store the guest `resume_token` securely and return it in `X-Form-Resume-Token` when resuming a
   guest draft. A logged-in user can claim that draft through the same token.
 - Guest listing also requires this token and returns only its matching form. Claiming associates
   the current tenant when enabled and clears the guest token.
 - Read `current_step_id` as a string step key and `status: submitted` after completion.
+- Each step/container and requirement in the response carries `rules` and saved `values`/`value`
+  (`null` before saving); repeatable steps add `repeats`. Replace any level via
+  `config('form-stepper.resources')` with a class extending the package resource.
 - Back up existing installations before publishing only the new ownership upgrade migration:
   it deletes creator data, renames the old step field, and converts completed statuses. It cannot
   be rolled back without restoring a backup.
@@ -84,6 +88,20 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
   but cannot be submitted until claimed by an authenticated requester.
 - Render the returned arrayable schema with the host app's chosen UI; option catalogs and any
   dynamic choice endpoints remain application-owned.
+
+### 5. Optional admin panel and lookup library
+
+- Publish and run the `create_form_library_tables` migration (input types with seeded system
+  types, lookup inputs with complex children, library steps with ordered inputs).
+- Set `form-stepper.admin.enabled` to `true` and define the `manage-form-stepper` Gate; routes use
+  `['web', 'auth']` under `form-stepper/admin`.
+- Snapshot library records into options with `FormStepTemplate::toStep()` and
+  `FormInput::toInput()` wrapped in `Requirements::make(...)->toArray()`; library edits do not
+  change saved options until rebuilt.
+- Customize with `vendor:publish --tag=form-stepper-views` and
+  `--tag=form-stepper-admin-controllers`, then point `form-stepper.admin.controllers` at the
+  published classes.
+- Admin edits of any draft step go through `FormService::updateStepValues()`.
 
 ## References
 
@@ -95,6 +113,9 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 - `src/Schema/Requirements.php`
 - `config/form-stepper.php`
 - `routes/form-stepper.php`
+- `routes/form-stepper-admin.php`
+- `src/Models/FormInput.php`
+- `src/Models/FormStepTemplate.php`
 - `README.md`
 
 ## Examples

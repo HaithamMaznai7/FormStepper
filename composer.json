@@ -17,6 +17,12 @@
             "role": "Developer"
         }
     ],
+    "repositories": [
+      {
+        "type": "vcs",
+        "url": "https://github.com/HaithamMaznai7/FormStepper"
+      }
+    ],
     "require": {
         "php": "^8.3",
         "illuminate/database": "^11.0||^12.0||^13.0",

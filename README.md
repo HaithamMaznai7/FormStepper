@@ -28,6 +28,7 @@ There is no tagged package release documented here yet; the instructions below i
 - [JSON API](#json-api)
 - [Using the package on a website](#using-the-package-on-a-website)
 - [Direct service usage](#direct-service-usage)
+- [Admin panel](#admin-panel)
 - [Upgrading existing installations](#upgrading-existing-installations)
 - [Development and troubleshooting](#development-and-troubleshooting)
 
@@ -233,7 +234,9 @@ review step; render it from the earlier steps and their saved values.
 Expect `status: "submitted"` and `completed_at`. Submission does not automatically create an order,
 send an email, or execute an application-specific action.
 
-For a single form, return `'single'` from `mode()` and submit all step groups with
+For a single form, return `'single'` from `mode()`. Single-form responses expose the input groups as
+`definition.containers` (not `definition.steps`) and omit `current_step_id` and
+`requires_authentication`. Submit all container groups, keyed by container key, with
 `POST /api/forms/{uuid}/submit`:
 
 ```json
@@ -443,6 +446,10 @@ controllers that create catalog records belong to your application.
 
 ### Reuse inputs from an application lookup table
 
+> The package ships a ready-made lookup library (inputs, complex children, library steps, and
+> input types) with an admin UI. See [Admin panel](#admin-panel). The manual approach below
+> is still valid when you prefer your own table.
+
 For an admin-managed input library, create an application table such as `form_input_definitions`
 with `id`, unique `key`, JSON `definition`, and timestamps. Its model, e.g. `InputDefinition`, casts
 `definition` to `array` and permits `key`/`definition` assignment through `$fillable`.
@@ -521,10 +528,11 @@ The same snapshots work for both modes:
 
 - **Stepper:** save `{"values":{"name":"Ada","email":"ada@example.test","phone":"123"}}` at
   `PUT /api/forms/{uuid}/steps/contact`, then submit review.
-- **Single:** return `'single'` from the builder's `mode()`. Render all input groups together and
-  submit `{"values":{"contact":{"name":"Ada","email":"ada@example.test","phone":"123"}}}` at
-  `POST /api/forms/{uuid}/submit`. Step keys still namespace saved values even though there is
-  no step-by-step UI.
+- **Single:** return `'single'` from the builder's `mode()`. The response returns the groups as
+  `definition.containers`; render them together and submit
+  `{"values":{"contact":{"name":"Ada","email":"ada@example.test","phone":"123"}}}` at
+  `POST /api/forms/{uuid}/submit`. Options still define groups with `Step::make()`; container keys
+  namespace saved values.
 
 For fixed base requirements, your builder can also return
 `Requirements::make(Step::make('contact', [$name]))->toArray()` from `steps()`.
@@ -746,14 +754,74 @@ Individual responses contain:
 |---|---|
 | `id` | Public form UUID, not the numeric database ID. |
 | `type`, `mode`, `status` | Registered type, single/stepper mode, draft/submitted state. |
-| `current_step_id` | String step key (or `review`); omitted when null. |
-| `definition` | Effective schema with scopes/requirements and computed stepper review step. |
+| `current_step_id` | Stepper only: string step key (or `review`); omitted when null or in single mode. |
+| `definition` | Effective schema. Stepper forms return `steps` plus the computed review step; single forms return `containers`. |
 | `selected_options` | Selected stable option keys. |
-| `values` | Persisted answers grouped by step key. |
-| `requires_authentication` | Current-step authentication flag. |
+| `values` | Persisted answers grouped by step/container key. |
+| `requires_authentication` | Stepper only: current-step authentication flag. |
 | `authentication_required` | Remaining form-level authentication requirement. |
 | `completed_at` | Submission timestamp; omitted before submission. |
 | `resume_token` | Guest token; returned only on guest creation. |
+
+### Steps, requirements, and saved values
+
+Each step (or single-mode container) in `definition.steps` / `definition.containers` is built by
+a resource and includes its rules and saved values. `values` and `value` are `null` until saved:
+
+```json
+{
+  "key": "applicant",
+  "title": "Applicant",
+  "repeatable": false,
+  "rules": {"name": ["required", "string"], "address.city": ["required", "string"]},
+  "values": {"name": "Ada", "address": {"city": "Riyadh"}},
+  "requirements": [
+    {"key": "name", "type": "input", "rules": ["required", "string"], "default": null, "value": "Ada"},
+    {"key": "address", "type": "complex", "rules": ["array"], "default": null,
+     "value": {"city": "Riyadh"},
+     "children": [{"key": "city", "type": "input", "rules": ["required", "string"], "value": "Riyadh"}]}
+  ]
+}
+```
+
+- A requirement's schema `value` attribute is returned as `default`; `value` is the saved answer.
+- Repeatable steps also return `repeats`: one entry per saved instance with `index`, `rules`,
+  `values`, and `requirements` filled with that instance's values (`[]` before saving). Their
+  step-level `rules` use the validator form `cars.*.plate`.
+
+### Custom resources
+
+Every level is a `JsonResource` selected in `config/form-stepper.php`:
+
+```php
+'resources' => [
+    'form' => \HaithamMaznai\FormStepper\Http\Resources\FormResource::class,
+    'step' => \App\Http\Resources\FormStepResource::class,
+    'requirement' => \HaithamMaznai\FormStepper\Http\Resources\RequirementResource::class,
+    'repeatable' => \HaithamMaznai\FormStepper\Http\Resources\RepeatableResource::class,
+],
+```
+
+Extend the package class you replace so nested resources keep working:
+
+```php
+namespace App\Http\Resources;
+
+use HaithamMaznai\FormStepper\Http\Resources\StepResource;
+use Illuminate\Http\Request;
+
+class FormStepResource extends StepResource
+{
+    public function toArray(Request $request): array
+    {
+        return [...parent::toArray($request), 'icon' => $this->definition()['extra']['icon'] ?? null];
+    }
+}
+```
+
+Helpers: `StepResource::definition()` / `values()`, `RequirementResource::definition()` /
+`value()`, and `RepeatableResource::step()` / `index()` / `values()`. `FormResult::toResource()`
+returns the configured form resource and `FormResult::toArray()` returns the resolved array.
 
 List responses use `data` plus pagination `meta` (`current_page`, `last_page`, `per_page`, `total`).
 The current list endpoint returns drafts only (10 per page by default); use an authorized
@@ -843,6 +911,123 @@ Direct calls do not run controller authorization or verify a guest token for you
 checks before invoking the service; protect every read/write with application policies or builder
 authorization. `create()` returns `form`, `result`, and `resume_token`; save/update/submit methods
 return an arrayable `FormResult`. `claimGuest()` returns void.
+
+## Admin panel
+
+The package includes optional Blade pages (Tailwind via CDN, RTL aware) to manage:
+
+| Section | URL (default prefix) | Actions |
+| --- | --- | --- |
+| Input types | `/form-stepper/admin/input-types` | list, show, create, edit, delete custom types |
+| Lookup inputs | `/form-stepper/admin/inputs` | list/search, show, create, edit, delete |
+| Library steps | `/form-stepper/admin/steps` | list/search, show, create, edit, delete |
+| Forms | `/form-stepper/admin/forms` | list/filter, show, create draft, edit options and step values, delete |
+
+### 1. Migrate the library tables
+
+`php artisan vendor:publish --tag=form-stepper-migrations` publishes
+`create_form_library_tables`, which creates (names configurable in `form-stepper.tables`):
+
+| Config key | Default table | Purpose |
+| --- | --- | --- |
+| `input_types` | `form_input_types` | System and custom input types |
+| `inputs` | `form_inputs` | Reusable lookup inputs |
+| `input_children` | `form_input_children` | Ordered children of `complex` inputs |
+| `step_templates` | `form_steps_library` | Reusable library steps |
+| `step_template_inputs` | `form_steps_library_inputs` | Ordered inputs of each library step |
+
+Then run `php artisan migrate`. The migration seeds the system types: `input`, `selection`,
+`single-selection`, `multiple-selection`, `radio`, `checkbox`, `boolean`, `plate`, and `complex`.
+System types cannot be deleted and their key/behaviour cannot change (the name and description can).
+
+### 2. Enable the routes and authorize admins
+
+```php
+// config/form-stepper.php
+'admin' => [
+    'enabled' => true,                     // routes are off by default
+    'prefix' => 'form-stepper/admin',
+    'middleware' => ['web', 'auth'],
+    'name' => 'form-stepper.admin.',
+    'gate' => 'manage-form-stepper',       // null disables the gate check
+    'per_page' => 15,
+    'controllers' => [ /* see step 4 */ ],
+],
+```
+
+Define the gate, e.g. in `App\Providers\AppServiceProvider::boot()`:
+
+```php
+use Illuminate\Support\Facades\Gate;
+
+Gate::define('manage-form-stepper', fn ($user) => $user->is_admin);
+```
+
+Users without the ability receive `403`. Guests are redirected by the `auth` middleware, so your
+application needs a `login` route. Run `php artisan route:clear` if routes are cached.
+
+### 3. Manage the library
+
+- **Input types**: create custom types (e.g. `signature`) with an optional `has_options` flag.
+  Custom keys are accepted by `Input::make()` and schema validation immediately. A type used by
+  an input cannot be deleted.
+- **Lookup inputs**: key, label, type, placeholder, rules (one per line or `|`-separated;
+  `regex:` lines are kept whole), options as `value|label` lines, default value (JSON or text),
+  and an `extra` JSON object. `complex` inputs select ordered children; cycles are rejected.
+- **Library steps**: key (`review` is reserved), title, subtitle, authentication flag,
+  repeatable flag with `repeat_name`, and ordered inputs (position numbers).
+
+Use the library to build option requirements. Steps and inputs are **snapshotted** into the option
+record, so later library edits do not change saved options or forms until you rebuild them:
+
+```php
+use HaithamMaznai\FormStepper\Models\FormInput;
+use HaithamMaznai\FormStepper\Models\FormStepTemplate;
+use HaithamMaznai\FormStepper\Schema\Requirements;
+use HaithamMaznai\FormStepper\Schema\Step;
+
+$contact = FormStepTemplate::where('key', 'contact')->firstOrFail();
+$vehicle = FormInput::where('key', 'vehicle')->firstOrFail();
+
+$inspection->update(['requirements' => Requirements::make(
+    $contact->toStep(['title' => 'Contact details']), // attributes override the template
+    Step::make('vehicle', [$vehicle->toInput()]),
+)->toArray()]);
+```
+
+`toInput()` maps `default_value` to the schema `value`, stores options in `extra.options`, and
+recursively expands `complex` children. `syncInputs([ids])` and `syncChildren([ids])` save order
+programmatically.
+
+### 4. Forms admin
+
+The forms list filters by type, status, and mode. **Create** starts a draft for any registered
+builder type (with optional option keys) owned by the logged-in admin's requester/tenant as
+resolved by the builder. **Edit** recomputes selected options and saves values of any step via
+`FormService::updateStepValues()`, which validates the step and recomputes `current_step_id`
+(unlike `saveStep()`, which only accepts the current step). Complex and repeatable values are
+edited as JSON. Submitted forms are read-only; ownership is never changed.
+
+### 5. Customize views and controllers
+
+```bash
+php artisan vendor:publish --tag=form-stepper-views              # resources/views/vendor/form-stepper/admin/*
+php artisan vendor:publish --tag=form-stepper-admin-controllers  # app/Http/Controllers/FormStepper/Admin/*
+```
+
+Published controllers extend the package controllers, so override only what you need. Point the
+routes at them:
+
+```php
+'controllers' => [
+    'input_types' => \App\Http\Controllers\FormStepper\Admin\InputTypeController::class,
+    'inputs' => \App\Http\Controllers\FormStepper\Admin\InputController::class,
+    'steps' => \App\Http\Controllers\FormStepper\Admin\StepTemplateController::class,
+    'forms' => \App\Http\Controllers\FormStepper\Admin\FormController::class,
+],
+```
+
+Published views override package views automatically (`form-stepper::admin.*`).
 
 ## Upgrading existing installations
 

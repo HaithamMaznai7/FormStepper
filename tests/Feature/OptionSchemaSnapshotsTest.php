@@ -124,7 +124,8 @@ it('stores lookup snapshots and merges selected option inputs in either form mod
     }
 
     $updated = $service->updateOptions($form, $builder, ['inspection', 'delivery'])->toArray();
-    $inputs = $updated['definition']['steps'][0]['requirements'];
+    $groups = $mode === 'single' ? 'containers' : 'steps';
+    $inputs = $updated['definition'][$groups][0]['requirements'];
 
     expect(array_column($inputs, 'key'))->toBe(['name', 'email', 'phone'])
         ->and($inputs[0]['label'])->toBe('Name')

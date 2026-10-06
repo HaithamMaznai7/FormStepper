@@ -12,6 +12,7 @@ use HaithamMaznai\FormStepper\Models\Form;
 use HaithamMaznai\FormStepper\Models\FormOption;
 use HaithamMaznai\FormStepper\Models\FormStep;
 use HaithamMaznai\FormStepper\Support\FormOwnership;
+use HaithamMaznai\FormStepper\Support\RuleCollector;
 use HaithamMaznai\FormStepper\Support\SchemaAssembler;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -183,6 +184,41 @@ class FormService
             $position = array_search($stepKey, $stepKeys, true);
             $form->current_step_id = $stepKeys[$position + 1] ?? 'review';
             $form->save();
+
+            return $form;
+        });
+
+        return new FormResult($updatedForm->load(['steps', 'selectedOptions']));
+    }
+
+    /**
+     * Replace the saved values of any step of a draft (admin editing). Unlike `saveStep`, this
+     * does not require the step to be current and does not advance past later steps.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function updateStepValues(Form $form, string $stepKey, array $values): FormResult
+    {
+        $updatedForm = DB::transaction(function () use ($form, $stepKey, $values): Form {
+            $form = Form::query()->lockForUpdate()->whereKey($form->getKey())->firstOrFail();
+            $this->assertDraft($form);
+            $step = $this->findStep($form, $stepKey);
+
+            if ($step === null) {
+                throw ValidationException::withMessages([
+                    'step' => "The step [{$stepKey}] does not exist.",
+                ]);
+            }
+
+            FormStep::updateOrCreate(
+                ['form_id' => $form->getKey(), 'step_key' => $stepKey],
+                ['values' => $this->validateStep($step, $values), 'saved_at' => now()],
+            );
+
+            if ($form->mode === 'stepper') {
+                $form->current_step_id = $this->nextRequiredStep($form, $form->definition['steps'] ?? []);
+                $form->save();
+            }
 
             return $form;
         });
@@ -441,10 +477,8 @@ class FormService
     private function validateStep(array $step, array $values): array
     {
         $values = $this->filterStepValues($step, $values);
-        $prefix = $step['repeatable'] ? $step['repeat_name'].'.*.' : '';
 
-        $rules = $this->collectRules($step['requirements'], $prefix);
-        Validator::make($values, $rules)->validate();
+        Validator::make($values, RuleCollector::forStep($step))->validate();
 
         return $values;
     }
@@ -687,13 +721,13 @@ class FormService
     {
         $unexpectedKeys = array_diff(array_keys($values), $allowedKeys);
 
-        if ($unexpectedKeys !== []) {
+        if ($unexpectedKeys !== [] && config('form-stepper.throw_on_extra_values', true)) {
             throw ValidationException::withMessages([
                 'values' => 'Values include fields that are not part of the current form schema.',
             ]);
         }
 
-        return $values;
+        return array_intersect_key($values, array_flip($allowedKeys));
     }
 
     /**
@@ -713,7 +747,8 @@ class FormService
             static fn (array $requirement): string => explode('.', $requirement['key'])[0],
             $requirements,
         )));
-        $this->onlyAllowedValues($values, $allowedRoots);
+
+        $values = $this->onlyAllowedValues($values, $allowedRoots);
 
         foreach ($requirements as $requirement) {
             if (! Arr::has($values, $requirement['key'])) {
@@ -776,32 +811,6 @@ class FormService
                 'saved_at' => now(),
             ]);
         }
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $requirements
-     * @return array<string, array<int, mixed>>
-     */
-    private function collectRules(array $requirements, string $prefix): array
-    {
-        $rules = [];
-
-        foreach ($requirements as $requirement) {
-            $key = $prefix.$requirement['key'];
-
-            if ($requirement['rules'] !== []) {
-                $rules[$key] = $requirement['rules'];
-            }
-
-            if ($requirement['type'] === 'complex') {
-                $rules = [
-                    ...$rules,
-                    ...$this->collectRules($requirement['children'], $key.'.'),
-                ];
-            }
-        }
-
-        return $rules;
     }
 
     /**

@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\FormStepper\Admin;
+
+use HaithamMaznai\FormStepper\Http\Controllers\Admin\InputController as BaseInputController;
+
+/**
+ * Published Form Stepper admin controller. Select it in
+ * config('form-stepper.admin.controllers') and override any action.
+ */
+class InputController extends BaseInputController
+{
+}

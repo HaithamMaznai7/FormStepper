@@ -290,16 +290,6 @@ class SchemaNormalizer
 
     private function supportsInputType(string $type): bool
     {
-        return in_array($type, [
-            'input',
-            'selection',
-            'single-selection',
-            'multiple-selection',
-            'radio',
-            'checkbox',
-            'boolean',
-            'plate',
-            'complex',
-        ], true);
+        return InputTypeRegistry::supports($type);
     }
 }

@@ -521,6 +521,12 @@ it('stores and completes all step values for a single-mode form in one submissio
         }
     };
     $created = app(FormService::class)->create($builder, [], null, null);
+    $response = $created['result']->toArray();
+
+    expect($response['definition']['containers'])->toHaveCount(1)
+        ->and($response['definition']['containers'][0]['key'])->toBe('applicant')
+        ->and($response['definition'])->not->toHaveKey('steps')
+        ->and($response)->not->toHaveKeys(['current_step_id', 'requires_authentication']);
 
     app(FormService::class)->submitSingle($created['form'], [
         'applicant' => ['name' => 'Ada'],

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace HaithamMaznai\FormStepper\Forms;
 
+use HaithamMaznai\FormStepper\Http\Resources\FormResource;
+use HaithamMaznai\FormStepper\Http\Resources\FormStepperResource;
 use HaithamMaznai\FormStepper\Models\Form;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -17,52 +21,47 @@ class FormResult implements Arrayable
         private readonly ?string $resumeToken = null,
     ) {}
 
+    public function form(): Form
+    {
+        return $this->form;
+    }
+
+    /**
+     * The configured form resource (`form-stepper.resources.form`).
+     */
+    public function toResource(): JsonResource
+    {
+        $class = FormStepperResource::resourceClass('form');
+        $resource = new $class($this->form);
+
+        if ($resource instanceof FormResource) {
+            $resource->withResumeToken($this->resumeToken);
+        }
+
+        return $resource;
+    }
+
     /**
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    public function toArray(?Request $request = null): array
     {
-        $definition = $this->form->definition ?? [];
-        $steps = $definition['steps'] ?? [];
+        $request ??= app()->bound('request') ? app('request') : new Request;
 
-        if (($definition['mode'] ?? null) === 'stepper') {
-            $steps[] = [
-                'key' => 'review',
-                'title' => 'Review',
-                'type' => 'review',
-                'computed' => true,
-            ];
+        /** @var array<string, mixed> $data */
+        $data = $this->plain($this->toResource()->resolve($request));
+
+        return $data;
+    }
+
+    private function plain(mixed $value): mixed
+    {
+        if ($value instanceof Arrayable) {
+            $value = $value->toArray();
         }
 
-        $values = $this->form->valuesByStep();
-
-        $currentStep = null;
-
-        foreach ($definition['steps'] ?? [] as $step) {
-            if ($step['key'] === $this->form->current_step_id) {
-                $currentStep = $step;
-
-                break;
-            }
-        }
-
-        return array_filter([
-            'id' => $this->form->uuid,
-            'type' => $this->form->type,
-            'mode' => $this->form->mode,
-            'status' => $this->form->status,
-            'current_step_id' => $this->form->current_step_id,
-            'requires_authentication' => (bool) ($currentStep['requires_authentication'] ?? false),
-            'authentication_required' => $this->form->requester === null &&
-                (bool) ($definition['has_authentication_required_steps'] ?? false),
-            'definition' => [
-                ...$definition,
-                'steps' => $steps,
-            ],
-            'selected_options' => $this->form->selectedOptions->pluck('option_key')->all(),
-            'values' => $values,
-            'completed_at' => $this->form->completed_at?->toISOString(),
-            'resume_token' => $this->resumeToken,
-        ], static fn (mixed $value): bool => $value !== null);
+        return is_array($value)
+            ? array_map(fn (mixed $item): mixed => $this->plain($item), $value)
+            : $value;
     }
 }

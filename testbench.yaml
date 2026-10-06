@@ -1,6 +1,7 @@
 laravel: '@testbench'
 
 providers:
+  - HaithamMaznai\FormStepper\FormStepperServiceProvider
   # - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:

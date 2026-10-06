@@ -41,6 +41,10 @@ class FormStepperServiceProvider extends ServiceProvider
             $publishedRoutes = base_path('routes/form-stepper.php');
             $this->loadRoutesFrom(is_file($publishedRoutes) ? $publishedRoutes : __DIR__.'/../routes/form-stepper.php');
         }
+
+        if (config('form-stepper.admin.enabled', false)) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/form-stepper-admin.php');
+        }
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'form-stepper');
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'form-stepper');
 
@@ -56,6 +60,10 @@ class FormStepperServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/stubs/FormStepperController.php.stub' => app_path('Http/Controllers/FormStepperController.php'),
         ], ['form-stepper', 'form-stepper-controller']);
+        $this->publishes(collect(['InputTypeController', 'InputController', 'StepTemplateController', 'FormController'])
+            ->mapWithKeys(fn (string $name): array => [
+                __DIR__."/../resources/stubs/admin/{$name}.php.stub" => app_path("Http/Controllers/FormStepper/Admin/{$name}.php"),
+            ])->all(), 'form-stepper-admin-controllers');
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/form-stepper'),
         ], ['form-stepper', 'form-stepper-views']);

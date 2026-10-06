@@ -28,4 +28,12 @@ class FormBuilderRegistry
         return $this->builders[$formType]
             ?? throw new NotFoundHttpException("No form builder is registered for type [{$formType}].");
     }
+
+    /**
+     * @return list<string>
+     */
+    public function types(): array
+    {
+        return array_keys($this->builders);
+    }
 }
