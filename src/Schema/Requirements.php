@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Schema;
+namespace HaithamMaznai\FormStepper\Schema;
 
 use InvalidArgumentException;
 

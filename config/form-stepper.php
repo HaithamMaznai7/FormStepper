@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use HaithamMaznai\FormStepper\Http\Controllers\FormController;
 
 return [
     'enabled' => true,
@@ -22,6 +23,7 @@ return [
         'prefix' => 'api/forms',
         'middleware' => ['api'],
         'name' => 'form-stepper.forms.',
+        'controller' => FormController::class,
     ],
     'builders' => [],
     'types' => [

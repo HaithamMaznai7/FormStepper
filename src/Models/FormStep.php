@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Models;
+namespace HaithamMaznai\FormStepper\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Console\Commands;
+namespace HaithamMaznai\FormStepper\Console\Commands;
 
 use Illuminate\Console\Command;
 

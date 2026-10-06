@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Contracts;
+namespace HaithamMaznai\FormStepper\Contracts;
 
-use FormStepper\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Models\Form;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 

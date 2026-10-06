@@ -12,7 +12,7 @@ returned schema using Blade, Livewire, Vue, React, or another frontend. It also 
 tenant membership, option catalogs, and any business action performed after submission.
 
 Repository: [HaithamMaznai7/FormStepper](https://github.com/HaithamMaznai7/FormStepper).
-Composer name: `haithammaznai7/form-stepper`. PHP namespace: `FormStepper\FormStepper`.
+Composer name: `haitham-maznai/form-stepper`. PHP namespace: `HaithamMaznai\FormStepper`.
 There is no tagged package release documented here yet; the instructions below install `dev-main`.
 
 ## Contents
@@ -48,7 +48,7 @@ From your Laravel application's directory:
 
 ```bash
 composer config repositories.form-stepper vcs https://github.com/HaithamMaznai7/FormStepper.git
-composer require haithammaznai7/form-stepper:dev-main
+composer require haitham-maznai/form-stepper:dev-main
 ```
 
 No Packagist registration is assumed. Once the package is registered there and stable releases
@@ -68,7 +68,7 @@ Add a path repository to your application's `composer.json` alongside any existi
             "options": {
                 "symlink": true,
                 "versions": {
-                    "haithammaznai7/form-stepper": "dev-main"
+                    "haitham-maznai/form-stepper": "dev-main"
                 }
             }
         }
@@ -76,12 +76,15 @@ Add a path repository to your application's `composer.json` alongside any existi
 }
 ```
 
-Then run `composer require haithammaznai7/form-stepper:dev-main`. Replace the example path with
+Then run `composer require haitham-maznai/form-stepper:dev-main`. Replace the example path with
 your checkout. Composer discovers the package service provider automatically.
 
-The former name was `haitham-maznai/form-stepper`. Existing applications must replace that
-requirement and update their repository configuration to use the new name; the PHP namespace and
-publish tags have not changed.
+The former Composer name was `haithammaznai7/form-stepper`, and the former PHP namespace was
+`FormStepper\FormStepper`. Existing applications must replace the Composer requirement with
+`haitham-maznai/form-stepper`, update imports and configured builder/provider class references to
+`HaithamMaznai\FormStepper`, and regenerate Composer autoload files. Update any explicit Eloquent
+morph-map entries or stored fully qualified package model names if applicable. Publish tags,
+configuration keys, and the GitHub repository have not changed.
 
 ### Publish configuration and migrations
 
@@ -109,6 +112,39 @@ upgrading an existing installation or planning migration rollbacks.
 Additional publish tags are `form-stepper`, `form-stepper-views`, `form-stepper-lang`, and
 `form-stepper-assets`. These include starter resources, not a complete form renderer.
 
+### Publish and customize routes and controller
+
+```bash
+php artisan vendor:publish --tag=form-stepper-routes
+php artisan vendor:publish --tag=form-stepper-controller
+```
+
+These create `routes/form-stepper.php` and
+`app/Http/Controllers/FormStepperController.php`. The application controller extends the package
+controller and inherits its dependency injection, authorization, guest-token handling, and actions.
+Override public actions if you need custom behavior; call the parent action where appropriate to
+preserve the package's access checks.
+
+To use the published controller, set this in `config/form-stepper.php` under `routes`:
+
+```php
+'controller' => \App\Http\Controllers\FormStepperController::class,
+```
+
+If configuration was published before this setting existed, add it manually. Publishing the
+controller alone does not change the default controller automatically.
+
+The provider automatically loads the application's `routes/form-stepper.php` **instead of**
+the bundled route file when it exists. Do not include this file a second time from `routes/web.php`
+or `routes/api.php`; that would duplicate registration. The published route file retains the
+configured prefix, middleware, route names, and controller. `routes.enabled: false` disables
+automatic form route loading, including the published file, if you want to register routes yourself.
+
+After changing controllers/routes, clear or rebuild the application's route/config caches and run
+`php artisan route:list --name=form-stepper.forms`. Use `--force` when publishing only if you
+intend to overwrite local customizations. The broad `form-stepper` publish tag includes both
+these resources too.
+
 ## Quick start: a working form
 
 Create `app/Forms/ContactFormBuilder.php` in your application:
@@ -118,7 +154,7 @@ Create `app/Forms/ContactFormBuilder.php` in your application:
 
 namespace App\Forms;
 
-use FormStepper\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
 
 class ContactFormBuilder extends FormBuilder
 {
@@ -223,6 +259,7 @@ Core settings in `config/form-stepper.php`:
 | `routes.prefix` | `api/forms` | URL prefix. |
 | `routes.middleware` | `['api']` | Choose your API authentication or website session middleware. |
 | `routes.name` | `form-stepper.forms.` | Route name prefix. |
+| `routes.controller` | Package `FormController` class | Controller used by bundled/published form routes. |
 
 The retained starter keys `enabled`, `placeholder`, `types`, `default_type`, `default_step`,
 `last_step`, and `saleables` are not the engine's workflow configuration. Use `builders`,
@@ -242,7 +279,7 @@ For example, add this implementation to an application `FormOption` model whose 
 ```php
 namespace App\Models;
 
-use FormStepper\FormStepper\Contracts\ProvidesFormRequirements;
+use HaithamMaznai\FormStepper\Contracts\ProvidesFormRequirements;
 use Illuminate\Database\Eloquent\Model;
 
 class FormOption extends Model implements ProvidesFormRequirements
@@ -307,9 +344,9 @@ needed; do not reuse the package's selected-options table for this catalog.
 The package provides immutable snapshot authoring classes:
 
 ```php
-use FormStepper\FormStepper\Schema\Input;
-use FormStepper\FormStepper\Schema\Step;
-use FormStepper\FormStepper\Schema\Requirements;
+use HaithamMaznai\FormStepper\Schema\Input;
+use HaithamMaznai\FormStepper\Schema\Step;
+use HaithamMaznai\FormStepper\Schema\Requirements;
 
 $name = Input::make('name', attributes: [
     'label' => 'Name',
@@ -394,7 +431,7 @@ Optionally validate stored snapshots when implementing the contract:
 ```php
 public function formSteps(): array
 {
-    return \FormStepper\FormStepper\Schema\Requirements::fromArray(
+    return \HaithamMaznai\FormStepper\Schema\Requirements::fromArray(
         $this->requirements ?? [],
     )->toArray();
 }
@@ -413,9 +450,9 @@ An option editor can select these records and compose steps:
 
 ```php
 use App\Models\InputDefinition;
-use FormStepper\FormStepper\Schema\Input;
-use FormStepper\FormStepper\Schema\Step;
-use FormStepper\FormStepper\Schema\Requirements;
+use HaithamMaznai\FormStepper\Schema\Input;
+use HaithamMaznai\FormStepper\Schema\Step;
+use HaithamMaznai\FormStepper\Schema\Requirements;
 
 $lookup = InputDefinition::updateOrCreate(
     ['key' => 'name'],
@@ -574,7 +611,7 @@ Steps and inputs can use:
 - Values within a dimension are alternatives; different dimensions must all match.
 - `types-scope`, `tenant-types`, and `requester-scope` contain **form-type keys**, not PHP class names.
 - For tenant/requester scopes, models must implement
-  `FormStepper\FormStepper\Contracts\ProvidesAvailableTypes` with
+  `HaithamMaznai\FormStepper\Contracts\ProvidesAvailableTypes` with
   `getAvailableTypes(): array`, returning allowed form-type keys. If that interface is implemented,
   the active type must be in its returned list even for an unrestricted dimension.
 - A restricted tenant/requester scope does not match when the respective identity is null.
@@ -629,8 +666,8 @@ The tenant model must implement `TenantForm`:
 ```php
 namespace App\Models;
 
-use FormStepper\FormStepper\Contracts\TenantForm;
-use FormStepper\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Contracts\TenantForm;
+use HaithamMaznai\FormStepper\Models\Form;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -777,7 +814,7 @@ Use services when integrating through your own controllers or Livewire actions:
 
 ```php
 use App\Forms\ContactFormBuilder;
-use FormStepper\FormStepper\Services\FormService;
+use HaithamMaznai\FormStepper\Services\FormService;
 
 $builder = app(ContactFormBuilder::class);
 $service = app(FormService::class);

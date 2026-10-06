@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\Contracts\ProvidesAvailableTypes;
-use FormStepper\FormStepper\Contracts\ProvidesFormRequirements;
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Support\SchemaAssembler;
+use HaithamMaznai\FormStepper\Contracts\ProvidesAvailableTypes;
+use HaithamMaznai\FormStepper\Contracts\ProvidesFormRequirements;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Support\SchemaAssembler;
 use Illuminate\Database\Eloquent\Model;
 
 it('merges compatible inputs from selected options and builder steps', function () {

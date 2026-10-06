@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\FormStepper;
+use HaithamMaznai\FormStepper\FormStepper;
 use Illuminate\Support\Facades\Route;
 
 it('resolves the singleton', function () {

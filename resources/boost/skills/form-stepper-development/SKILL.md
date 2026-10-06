@@ -20,15 +20,20 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 
 ### 1. Install and configure
 
-- Install `haithammaznai7/form-stepper` with Composer. Until published on Packagist, add the VCS
+- Install `haitham-maznai/form-stepper` with Composer. Until published on Packagist, add the VCS
   repository `https://github.com/HaithamMaznai7/FormStepper.git` and require `dev-main`.
 - Publish the configuration and migrations with `php artisan vendor:publish --tag="form-stepper-config"` and
   `php artisan vendor:publish --tag="form-stepper-migrations"`.
 - Set table names and route settings before running `php artisan migrate`.
+- Optionally publish `form-stepper-routes` and `form-stepper-controller`. The provider prefers
+  `routes/form-stepper.php` over bundled routes; do not manually include it again.
+- Set `routes.controller` to `App\Http\Controllers\FormStepperController::class` to use the
+  published subclass. It inherits the package controller's actions and access checks.
+- `routes.enabled: false` disables automatic loading of both bundled and published routes.
 
 ### 2. Register each workflow builder
 
-- Extend `FormStepper\FormStepper\Forms\FormBuilder` for each form type.
+- Extend `HaithamMaznai\FormStepper\Forms\FormBuilder` for each form type.
 - Implement `formType()` and optionally override `mode()`, `steps()`, `resolveOptions()`, and the
   requester, tenant, authorization, and listing-scope methods. Creator ownership is not supported.
 - Register each builder class under the `builders` config key.
@@ -95,7 +100,7 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 ## Examples
 
 ```php
-final class OrderFormBuilder extends \FormStepper\FormStepper\Forms\FormBuilder
+final class OrderFormBuilder extends \HaithamMaznai\FormStepper\Forms\FormBuilder
 {
     public function formType(): string
     {

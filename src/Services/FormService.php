@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Services;
+namespace HaithamMaznai\FormStepper\Services;
 
-use FormStepper\FormStepper\Contracts\ProvidesFormRequirements;
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Forms\FormDefinition;
-use FormStepper\FormStepper\Forms\FormResult;
-use FormStepper\FormStepper\Models\Form;
-use FormStepper\FormStepper\Models\FormOption;
-use FormStepper\FormStepper\Models\FormStep;
-use FormStepper\FormStepper\Support\FormOwnership;
-use FormStepper\FormStepper\Support\SchemaAssembler;
+use HaithamMaznai\FormStepper\Contracts\ProvidesFormRequirements;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormDefinition;
+use HaithamMaznai\FormStepper\Forms\FormResult;
+use HaithamMaznai\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Models\FormOption;
+use HaithamMaznai\FormStepper\Models\FormStep;
+use HaithamMaznai\FormStepper\Support\FormOwnership;
+use HaithamMaznai\FormStepper\Support\SchemaAssembler;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;

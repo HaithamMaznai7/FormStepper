@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\Contracts\ProvidesFormRequirements;
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Schema\Input;
-use FormStepper\FormStepper\Schema\Requirements;
-use FormStepper\FormStepper\Schema\Step;
-use FormStepper\FormStepper\Services\FormService;
+use HaithamMaznai\FormStepper\Contracts\ProvidesFormRequirements;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Schema\Input;
+use HaithamMaznai\FormStepper\Schema\Requirements;
+use HaithamMaznai\FormStepper\Schema\Step;
+use HaithamMaznai\FormStepper\Services\FormService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

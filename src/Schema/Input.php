@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Schema;
+namespace HaithamMaznai\FormStepper\Schema;
 
-use FormStepper\FormStepper\Support\SchemaNormalizer;
+use HaithamMaznai\FormStepper\Support\SchemaNormalizer;
 
 /** @extends Definition<array<string, mixed>> */
 final class Input extends Definition

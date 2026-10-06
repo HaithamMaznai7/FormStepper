@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Forms;
+namespace HaithamMaznai\FormStepper\Forms;
 
 use Illuminate\Contracts\Support\Arrayable;
 

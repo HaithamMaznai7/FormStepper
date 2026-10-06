@@ -1,10 +1,10 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "haithammaznai7/form-stepper",
+    "name": "haitham-maznai/form-stepper",
     "description": "Persistent, option-driven single-step and stepper forms for Laravel with requester and optional tenant ownership.",
     "keywords": [
         "laravel",
-        "haithammaznai7",
+        "haitham-maznai",
         "form-stepper"
     ],
     "homepage": "https://github.com/HaithamMaznai7/FormStepper",
@@ -36,12 +36,12 @@
     },
     "autoload": {
         "psr-4": {
-            "FormStepper\\FormStepper\\": "src/"
+            "HaithamMaznai\\FormStepper\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FormStepper\\FormStepper\\Tests\\": "tests/",
+            "HaithamMaznai\\FormStepper\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/",
             "Workbench\\Database\\Factories\\": "workbench/database/factories/",
             "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
@@ -91,10 +91,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "FormStepper\\FormStepper\\FormStepperServiceProvider"
+                "HaithamMaznai\\FormStepper\\FormStepperServiceProvider"
             ],
             "aliases": {
-                "FormStepper": "FormStepper\\FormStepper\\Facades\\FormStepper"
+                "FormStepper": "HaithamMaznai\\FormStepper\\Facades\\FormStepper"
             }
         }
     },

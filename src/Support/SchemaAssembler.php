@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Support;
+namespace HaithamMaznai\FormStepper\Support;
 
-use FormStepper\FormStepper\Contracts\ProvidesFormRequirements;
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Forms\FormDefinition;
+use HaithamMaznai\FormStepper\Contracts\ProvidesFormRequirements;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormDefinition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;

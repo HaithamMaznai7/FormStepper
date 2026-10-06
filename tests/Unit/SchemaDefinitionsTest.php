@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\Schema\Input;
-use FormStepper\FormStepper\Schema\Requirements;
-use FormStepper\FormStepper\Schema\Step;
+use HaithamMaznai\FormStepper\Schema\Input;
+use HaithamMaznai\FormStepper\Schema\Requirements;
+use HaithamMaznai\FormStepper\Schema\Step;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Support;
+namespace HaithamMaznai\FormStepper\Support;
 
-use FormStepper\FormStepper\Contracts\TenantForm;
+use HaithamMaznai\FormStepper\Contracts\TenantForm;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;

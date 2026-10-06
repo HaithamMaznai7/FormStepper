@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\Support\SchemaNormalizer;
+use HaithamMaznai\FormStepper\Support\SchemaNormalizer;
 
 it('normalizes legacy scope keys and treats null scopes as unrestricted', function () {
     $steps = app(SchemaNormalizer::class)->normalize([

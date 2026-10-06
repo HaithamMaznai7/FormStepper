@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Enums;
+namespace HaithamMaznai\FormStepper\Enums;
 
 enum RequestType: string
 {

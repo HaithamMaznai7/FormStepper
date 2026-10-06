@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper;
+namespace HaithamMaznai\FormStepper;
 
 class FormStepper
 {

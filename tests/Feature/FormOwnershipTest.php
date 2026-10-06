@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use FormStepper\FormStepper\Contracts\TenantForm;
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Forms\FormBuilderRegistry;
-use FormStepper\FormStepper\Models\Form;
-use FormStepper\FormStepper\Services\FormService;
+use HaithamMaznai\FormStepper\Contracts\TenantForm;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormBuilderRegistry;
+use HaithamMaznai\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Services\FormService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Contracts;
+namespace HaithamMaznai\FormStepper\Contracts;
 
 interface ProvidesAvailableTypes
 {

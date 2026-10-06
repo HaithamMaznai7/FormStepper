@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Forms;
+namespace HaithamMaznai\FormStepper\Forms;
 
-use FormStepper\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Models\Form;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**

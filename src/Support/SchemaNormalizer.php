@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Support;
+namespace HaithamMaznai\FormStepper\Support;
 
 use InvalidArgumentException;
 

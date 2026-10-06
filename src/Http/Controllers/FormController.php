@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Http\Controllers;
+namespace HaithamMaznai\FormStepper\Http\Controllers;
 
-use FormStepper\FormStepper\Forms\FormBuilder;
-use FormStepper\FormStepper\Forms\FormBuilderRegistry;
-use FormStepper\FormStepper\Forms\FormResult;
-use FormStepper\FormStepper\Models\Form;
-use FormStepper\FormStepper\Services\FormService;
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormBuilderRegistry;
+use HaithamMaznai\FormStepper\Forms\FormResult;
+use HaithamMaznai\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Services\FormService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Forms;
+namespace HaithamMaznai\FormStepper\Forms;
 
-use FormStepper\FormStepper\Models\Form;
-use FormStepper\FormStepper\Support\FormOwnership;
+use HaithamMaznai\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Support\FormOwnership;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;

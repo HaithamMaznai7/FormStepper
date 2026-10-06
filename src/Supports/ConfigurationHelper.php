@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Supports;
+namespace HaithamMaznai\FormStepper\Supports;
 
 use UnitEnum;
 

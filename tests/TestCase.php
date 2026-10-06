@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FormStepper\FormStepper\Tests;
+namespace HaithamMaznai\FormStepper\Tests;
 
-use FormStepper\FormStepper\FormStepperServiceProvider;
+use HaithamMaznai\FormStepper\FormStepperServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
