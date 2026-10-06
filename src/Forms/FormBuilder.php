@@ -27,7 +27,7 @@ abstract class FormBuilder
 
     public function mode(): string
     {
-        return (string) config('form-stepper.default_mode', 'single');
+        return (string) config('form-stepper.default_mode', 'stepper');
     }
 
     public function resolveMode(?string $requestedMode): string

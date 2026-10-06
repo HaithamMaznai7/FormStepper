@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     'enabled' => true,
     'placeholder' => 'default',
-    'default_mode' => 'single',
+    'default_mode' => 'stepper', // 'single' or 'stepper'
     'allow_guest' => true,
     'allow_instance_mode_override' => false,
     'tenant' => [
@@ -27,6 +27,7 @@ return [
     'types' => [
         'b2c',
         'b2b',
+        'b2partner',
     ],
     'default_type' => 'b2c',
     'default_step' => null,

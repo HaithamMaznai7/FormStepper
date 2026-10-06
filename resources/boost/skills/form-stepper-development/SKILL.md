@@ -37,6 +37,15 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 
 - Make application option models implement `ProvidesFormRequirements`. Return stable option keys,
   requirement steps, required option keys, compatible option keys, and excluded option keys.
+- Create the option catalog and optional input lookup tables in the application; the package's
+  `form_options` table stores selected references, not catalog definitions.
+- Build snapshots with `Schema\Input::make()` / `fromArray()`, `Schema\Step::make()`, and
+  `Schema\Requirements::make(...$steps)`. Store `toArray()` in array-cast JSON columns, not
+  `toJson()` (which would double-encode). Return `toArray()` from `formSteps()` and builder `steps()`.
+- Lookup edits do not mutate saved option snapshots. Rebuild options explicitly, then recompute
+  selected options on drafts that should adopt the new definitions.
+- Use matching step/input keys and compatible metadata for merging. Single mode keeps the same
+  step-grouped schema and values; it changes submission/UI navigation, not option storage.
 - Make requester and tenant models implement `ProvidesAvailableTypes` when their available form
   types should restrict the schema.
 - Enable `tenant.enabled` before migrating to create tenant morph columns. Configure
@@ -76,6 +85,9 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 - `src/Forms/FormBuilder.php`
 - `src/Contracts/ProvidesFormRequirements.php`
 - `src/Contracts/ProvidesAvailableTypes.php`
+- `src/Schema/Input.php`
+- `src/Schema/Step.php`
+- `src/Schema/Requirements.php`
 - `config/form-stepper.php`
 - `routes/form-stepper.php`
 - `README.md`

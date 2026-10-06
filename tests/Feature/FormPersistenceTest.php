@@ -505,6 +505,11 @@ it('stores and completes all step values for a single-mode form in one submissio
             return 'single-application';
         }
 
+        public function mode(): string
+        {
+            return 'single';
+        }
+
         public function steps(): array
         {
             return [[

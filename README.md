@@ -210,7 +210,7 @@ Core settings in `config/form-stepper.php`:
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `default_mode` | `single` | Mode when a builder does not override `mode()`. |
+| `default_mode` | `stepper` | Mode when a builder does not override `mode()`. |
 | `allow_guest` | `true` | Default builder allows unauthenticated creation. |
 | `allow_instance_mode_override` | `false` | Accept `mode: single` or `mode: stepper` on creation. |
 | `builders` | `[]` | Map form types to application builder classes. |
@@ -247,6 +247,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class FormOption extends Model implements ProvidesFormRequirements
 {
+    protected $fillable = ['key', 'requirements', 'requires', 'compatible_with', 'excludes'];
+
     protected function casts(): array
     {
         return [
@@ -267,6 +269,181 @@ class FormOption extends Model implements ProvidesFormRequirements
 
 These JSON columns are an example storage design, not package-migrated tables. `formSteps()` returns
 the same step structure as the builder's `steps()`. You can return hardcoded schemas instead.
+
+### Create the option catalog table
+
+The package's `form_options` table stores selections **on a form**, not the catalog of options.
+Create a separate table in your application; for example run
+`php artisan make:migration create_application_form_options_table`, then use:
+
+```php
+public function up(): void
+{
+    \Illuminate\Support\Facades\Schema::create('application_form_options', function (
+        \Illuminate\Database\Schema\Blueprint $table,
+    ): void {
+        $table->id();
+        $table->string('key')->unique();
+        $table->json('requirements');
+        $table->json('requires')->nullable();
+        $table->json('compatible_with')->nullable();
+        $table->json('excludes')->nullable();
+        $table->timestamps();
+    });
+}
+
+public function down(): void
+{
+    \Illuminate\Support\Facades\Schema::dropIfExists('application_form_options');
+}
+```
+
+Add `protected $table = 'application_form_options';` to the `App\Models\FormOption` example above.
+Run `php artisan migrate` in your application. Use your own naming and tenant/access columns if
+needed; do not reuse the package's selected-options table for this catalog.
+
+### Build arrayable inputs, steps, and requirements
+
+The package provides immutable snapshot authoring classes:
+
+```php
+use FormStepper\FormStepper\Schema\Input;
+use FormStepper\FormStepper\Schema\Step;
+use FormStepper\FormStepper\Schema\Requirements;
+
+$name = Input::make('name', attributes: [
+    'label' => 'Name',
+    'rules' => ['required', 'string'],
+]);
+
+$inspectionRequirements = Requirements::make(
+    Step::make('contact', [
+        $name,
+        Input::make('email', attributes: ['rules' => ['required', 'email']]),
+    ], ['title' => 'Contact']),
+);
+
+$deliveryRequirements = Requirements::make(
+    Step::make('contact', [
+        $name,
+        Input::make('phone', attributes: ['rules' => ['required', 'string']]),
+    ], ['title' => 'Contact']),
+);
+```
+
+Each class implements Laravel `Arrayable`, `Jsonable`, and PHP `JsonSerializable`.
+The APIs are:
+
+| Method | Purpose |
+|---|---|
+| `Input::make($key, $type = 'input', $attributes = [])` | Create an input; attributes contain rules, labels, scopes, or metadata. |
+| `Input::complex($key, $children, $attributes = [])` | Create a complex input from a list of `Input` instances. |
+| `Input::fromArray($definition)` | Load a complete raw input definition from a lookup record. |
+| `Step::make($key, $inputs = [], $attributes = [])` | Create a step from a list of `Input` instances. |
+| `Step::fromArray($definition)` | Load a complete raw step definition. |
+| `Requirements::make(...$steps)` | Build an option's ordered list of `Step` instances. |
+| `Requirements::fromArray($steps)` | Load the list from an Eloquent array-cast column. |
+| `Requirements::fromJson($json)` | Load a JSON string whose root is a list of steps. |
+| `toArray()` / `toJson()` | Export the raw schema snapshot. |
+
+Constructors are not public; use the factories. Attributes use the existing schema names:
+`requires-authentication`, `repeatable`, `repeat-name`, and scope fields. Factories validate through
+the same normalizer used by forms, reject duplicate input keys within a step and duplicate step
+keys within one option, and preserve the original schema attributes rather than saving the
+runtime-normalized schema. Errors are explicit: invalid schema/non-JSON data raises
+`InvalidArgumentException`; JSON encoding/decoding failures raise `JsonException`.
+
+Snapshot values must be arrays, scalars, or null. Executable rules, closures, objects, and resources
+cannot be stored through these classes; use serializable rule strings. `Input` and `Step`
+factories do not infer rules from type names or labels.
+
+### Save option records and fetch their definitions
+
+Using the option model and catalog table above:
+
+```php
+use App\Models\FormOption;
+
+$inspection = FormOption::updateOrCreate(
+    ['key' => 'inspection'],
+    [
+        'requirements' => $inspectionRequirements->toArray(),
+        'requires' => [],
+        'compatible_with' => ['delivery'],
+        'excludes' => [],
+    ],
+);
+
+$delivery = FormOption::updateOrCreate(
+    ['key' => 'delivery'],
+    [
+        'requirements' => $deliveryRequirements->toArray(),
+        'requires' => [],
+        'compatible_with' => ['inspection'],
+        'excludes' => [],
+    ],
+);
+```
+
+**For Eloquent columns cast as `array`, assign `toArray()`, not `toJson()`.** Eloquent encodes
+the array into JSON. Assigning an already-encoded string would double-encode it.
+Use `toJson()` for an explicit JSON export or an uncast string column instead.
+
+Optionally validate stored snapshots when implementing the contract:
+
+```php
+public function formSteps(): array
+{
+    return \FormStepper\FormStepper\Schema\Requirements::fromArray(
+        $this->requirements ?? [],
+    )->toArray();
+}
+```
+
+The engine calls this method on the models returned by `resolveOptions()` below; no package
+option-creation endpoint or option catalog model is needed. Seeders, admin pages, and authorized
+controllers that create catalog records belong to your application.
+
+### Reuse inputs from an application lookup table
+
+For an admin-managed input library, create an application table such as `form_input_definitions`
+with `id`, unique `key`, JSON `definition`, and timestamps. Its model, e.g. `InputDefinition`, casts
+`definition` to `array` and permits `key`/`definition` assignment through `$fillable`.
+An option editor can select these records and compose steps:
+
+```php
+use App\Models\InputDefinition;
+use FormStepper\FormStepper\Schema\Input;
+use FormStepper\FormStepper\Schema\Step;
+use FormStepper\FormStepper\Schema\Requirements;
+
+$lookup = InputDefinition::updateOrCreate(
+    ['key' => 'name'],
+    ['definition' => Input::make('name', attributes: [
+        'label' => 'Name',
+        'rules' => ['required', 'string'],
+    ])->toArray()],
+);
+
+$selectedInput = Input::fromArray($lookup->definition);
+$requirements = Requirements::make(
+    Step::make('contact', [$selectedInput], ['title' => 'Contact']),
+);
+
+$inspection->update(['requirements' => $requirements->toArray()]);
+```
+
+This stores the **entire input definition**, not its lookup ID. Editing/deleting the lookup later
+does not mutate the saved option snapshot. Explicitly rebuild and save an option to apply updated
+lookup definitions. Existing forms also keep their own resolved schema snapshot; updating an
+option does not automatically rewrite all saved drafts. Recomputing a draft's selected options
+loads current option snapshots and retains only compatible values.
+
+You may use application-owned pivot tables to remember which lookup records an editor selected,
+but the runtime snapshot remains self-contained. Reuse stable keys and consistent labels/types
+when the same input should deduplicate across options.
+
+### Resolve selected options and merge them
 
 Override your builder's `resolveOptions()`:
 
@@ -295,6 +472,27 @@ exactly once. Send selected keys as `"options": ["inspection", "delivery"]` when
 
 Your frontend must render the option selector and disable conflicting choices for convenience;
 the package enforces compatibility again on the server.
+
+With the two saved options above, creating a form with
+`{"type":"contact","options":["inspection","delivery"]}` produces **one** `contact` group with
+`name`, `email`, and `phone`: the shared `name` definition appears once. The builder's own steps
+are merged first, followed by selected option steps. Matching keys must have compatible metadata;
+compatible rules are combined rather than discarded. This is key-based merging within a step,
+not global deduplication across differently named steps.
+
+The same snapshots work for both modes:
+
+- **Stepper:** save `{"values":{"name":"Ada","email":"ada@example.test","phone":"123"}}` at
+  `PUT /api/forms/{uuid}/steps/contact`, then submit review.
+- **Single:** return `'single'` from the builder's `mode()`. Render all input groups together and
+  submit `{"values":{"contact":{"name":"Ada","email":"ada@example.test","phone":"123"}}}` at
+  `POST /api/forms/{uuid}/submit`. Step keys still namespace saved values even though there is
+  no step-by-step UI.
+
+For fixed base requirements, your builder can also return
+`Requirements::make(Step::make('contact', [$name]))->toArray()` from `steps()`.
+The public option/builder contracts continue returning arrays; call `toArray()` at this boundary
+instead of returning the definition objects directly.
 
 ## Input schemas and validation
 
@@ -494,7 +692,7 @@ Authenticated requests need the host application's chosen authentication middlew
 |---|---|---|
 | POST | `/api/forms` | `type`, optional `options`, optional enabled `mode` override. |
 | GET | `/api/forms/{uuid}` | Read/resume a form. |
-| GET | `/api/forms` | Required `type`; optional `status=draft\|submitted`, `per_page` (1-100), `page`. |
+| GET | `/api/forms` | List drafts for required `type`; optional `per_page` (1-100), `page`. |
 | PATCH | `/api/forms/{uuid}/options` | `{"options":["option-key"]}`; `[]` clears selections. |
 | PUT | `/api/forms/{uuid}/steps/{step}` | `{"values":{...}}`; only the current step of a stepper. |
 | POST | `/api/forms/{uuid}/submit` | `{"values":{"step-key":{...}}}`; single-mode submission. |
@@ -521,6 +719,8 @@ Individual responses contain:
 | `resume_token` | Guest token; returned only on guest creation. |
 
 List responses use `data` plus pagination `meta` (`current_page`, `last_page`, `per_page`, `total`).
+The current list endpoint returns drafts only (10 per page by default); use an authorized
+application query with `Form::query()->submitted()` to build a submitted-form listing.
 Null top-level fields are omitted. Submitted forms remain stored, and ordinary update/submit
 operations reject forms that are no longer drafts. No automatic draft expiry or deletion runs.
 

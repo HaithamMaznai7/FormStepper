@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace FormStepper\FormStepper\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -91,5 +92,32 @@ class Form extends Model
         }
 
         return $values;
+    }
+
+    /**
+     * @param  Builder<Form>  $query
+     * @return Builder<Form>
+     */
+    public function scopeDraft(Builder $query): Builder
+    {
+        return $query->where('status', 'draft');
+    }
+
+    /**
+     * @param  Builder<Form>  $query
+     * @return Builder<Form>
+     */
+    public function scopeSubmitted(Builder $query): Builder
+    {
+        return $query->where('status', 'submitted');
+    }
+
+    /**
+     * @param  Builder<Form>  $query
+     * @return Builder<Form>
+     */
+    public function scopeType(Builder $query, string $type): Builder
+    {
+        return $query->where('type', $type);
     }
 }

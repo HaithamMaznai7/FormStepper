@@ -25,22 +25,18 @@ class FormController
     {
         $data = $request->validate([
             'type' => ['required', 'string'],
-            'status' => ['sometimes', 'in:draft,submitted'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
+
         $builder = $this->builders->resolve($data['type']);
         $query = $builder->scopeForms(
-            Form::query()->where('type', $builder->formType()),
+            Form::query()->type($builder->formType())->draft(),
             $request,
         );
 
-        if (isset($data['status'])) {
-            $query->where('status', $data['status']);
-        }
-
         $forms = $query->with(['steps', 'selectedOptions'])
             ->latest()
-            ->paginate($data['per_page'] ?? 15);
+            ->paginate($data['per_page'] ?? 10);
         /** @var list<Form> $items */
         $items = $forms->items();
 

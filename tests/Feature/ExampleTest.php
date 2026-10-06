@@ -19,7 +19,7 @@ it('registers the form API routes', function () {
 });
 it('merges the package config', function () {
     expect(config('form-stepper.placeholder'))->toBe('default')
-        ->and(config('form-stepper.default_mode'))->toBe('single')
+        ->and(config('form-stepper.default_mode'))->toBe('stepper')
         ->and(config('form-stepper.tables.forms'))->toBe('forms');
 });
 it('loads the package translations', function () {
