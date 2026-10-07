@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Types\Type;
 use HaithamMaznai\FormStepper\Support\OwnershipStatusType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -48,14 +47,8 @@ return new class extends Migration
         $legacySqlite = version_compare(app()->version(), '11.0', '<')
             && DB::connection()->getDriverName() === 'sqlite';
 
-        if ($legacySqlite) {
-            if (! class_exists(Type::class)) {
-                throw new RuntimeException('Install doctrine/dbal:^3.9 before upgrading ownership on Laravel 10 with SQLite.');
-            }
-
-            if (! Type::hasType('enum')) {
-                Type::addType('enum', OwnershipStatusType::class);
-            }
+        if ($legacySqlite && ! class_exists(AbstractSchemaManager::class)) {
+            throw new RuntimeException('Install doctrine/dbal:^3.9 before upgrading ownership on Laravel 10 with SQLite.');
         }
 
         if ($hasOldStep) {
@@ -77,8 +70,8 @@ return new class extends Migration
             }
         }
 
-        if ($creatorColumns !== [] && $legacySqlite) {
-            $this->dropSqliteCreator($tableName, $creatorColumns);
+        if ($legacySqlite) {
+            $this->upgradeLegacySqlite($tableName, $creatorColumns);
         } elseif ($creatorColumns !== []) {
             foreach (Schema::getForeignKeys($tableName) as $foreignKey) {
                 if (array_intersect($creatorColumns, $foreignKey['columns']) !== []) {
@@ -101,9 +94,11 @@ return new class extends Migration
             });
         }
 
-        Schema::table($tableName, function (Blueprint $table): void {
-            $table->enum('status', ['draft', 'submitted'])->default('draft')->change();
-        });
+        if (! $legacySqlite) {
+            Schema::table($tableName, function (Blueprint $table): void {
+                $table->enum('status', ['draft', 'submitted'])->default('draft')->change();
+            });
+        }
 
         if (config('form-stepper.tenant.enabled', false) && ! $hasTenantType) {
             Schema::table($tableName, function (Blueprint $table): void {
@@ -120,7 +115,7 @@ return new class extends Migration
     }
 
     /** @param list<string> $columns */
-    private function dropSqliteCreator(string $tableName, array $columns): void
+    private function upgradeLegacySqlite(string $tableName, array $columns): void
     {
         $connection = DB::connection();
 
@@ -149,6 +144,7 @@ return new class extends Migration
             $updated->dropColumn($column);
         }
 
+        $updated->modifyColumn('status', ['type' => new OwnershipStatusType, 'default' => 'draft']);
         $diff = $manager->createComparator()->compareTables($original, $updated);
 
         foreach ($manager->getDatabasePlatform()->getAlterTableSQL($diff) as $sql) {

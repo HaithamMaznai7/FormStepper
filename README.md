@@ -41,6 +41,8 @@ There is no tagged package release documented here yet; the instructions below i
 The package uses Laravel's database, HTTP, routing, support, and validation components.
 Its development suite uses Orchestra Testbench 8/9/10/11 and Pest 2/3/4/5, selected to
 match the Laravel version. Laravel 10 uses Testbench 8, Pest 2, and Larastan 2.
+CI runs functional and type-coverage tests on Laravel 10; static analysis runs on the
+modern lanes because Larastan 2 and 3 use different relation generic annotations.
 
 Laravel 10 is a legacy compatibility target, not a security-support guarantee. Prefer a
 maintained Laravel release for production. Composer may block legacy framework versions
