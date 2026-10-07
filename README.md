@@ -1087,6 +1087,7 @@ renderer is registered by default.
 |---|---|
 | Composer cannot find the package | Add the GitHub VCS repository and use the exact new name plus `dev-main`. |
 | Composer rejects Laravel/PHP versions | Use Laravel 10.48.29+/11/12/13 and PHP 8.3+; do not bypass platform checks. |
+| Packagist ignores release tags | Do not set a `version` field in `composer.json`; Composer derives versions from Git tags. Publish a new tag containing the fix instead of moving existing tags. |
 | Builder not registered | Register its class under `builders` and match its `formType()` key. |
 | Guest request returns 403 | Keep the creation token and send it in `X-Form-Resume-Token`. |
 | Logged-in user appears as guest | Configure session/API guard middleware for the package routes. |
