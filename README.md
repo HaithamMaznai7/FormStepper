@@ -35,11 +35,16 @@ There is no tagged package release documented here yet; the instructions below i
 ## Requirements
 
 - PHP **8.3 or later** within PHP 8.x.
-- Laravel **11, 12, or 13**.
+- Laravel **10.48.29+, 11, 12, or 13**.
 - A database supported by Laravel; configure it before running migrations.
 
 The package uses Laravel's database, HTTP, routing, support, and validation components.
-Its development suite uses Orchestra Testbench 10/11 and Pest 4/5.
+Its development suite uses Orchestra Testbench 8/9/10/11 and Pest 2/3/4/5, selected to
+match the Laravel version. Laravel 10 uses Testbench 8, Pest 2, and Larastan 2.
+
+Laravel 10 is a legacy compatibility target, not a security-support guarantee. Prefer a
+maintained Laravel release for production. Composer may block legacy framework versions
+because of security advisories; do not disable advisory protection in production.
 
 ## Installation
 
@@ -1034,6 +1039,9 @@ Published views override package views automatically (`form-stepper::admin.*`).
 **Back up the database first. Do not run `migrate:fresh` against application data.**
 
 The new migration is `database/migrations/2026_10_06_000000_update_form_ownership.php`.
+On **Laravel 10 with SQLite**, install `composer require doctrine/dbal:^3.9` before running
+this ownership upgrade. Laravel 10 needs DBAL to rebuild changed columns and creator foreign
+keys; fresh library and form creation migrations do not need it.
 Copy only this upgrade migration into your application's migration directory, using a timestamp
 after its existing form migrations, then run `php artisan migrate`. Do not republish or rerun
 the renamed initial migration against existing tables.
@@ -1076,7 +1084,7 @@ renderer is registered by default.
 | Problem | Check |
 |---|---|
 | Composer cannot find the package | Add the GitHub VCS repository and use the exact new name plus `dev-main`. |
-| Composer rejects Laravel/PHP versions | Use Laravel 11/12/13 and PHP 8.3+; do not bypass platform checks. |
+| Composer rejects Laravel/PHP versions | Use Laravel 10.48.29+/11/12/13 and PHP 8.3+; do not bypass platform checks. |
 | Builder not registered | Register its class under `builders` and match its `formType()` key. |
 | Guest request returns 403 | Keep the creation token and send it in `X-Form-Resume-Token`. |
 | Logged-in user appears as guest | Configure session/API guard middleware for the package routes. |

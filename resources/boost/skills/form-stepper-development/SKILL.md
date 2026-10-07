@@ -22,6 +22,9 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 
 - Install `haitham-maznai/form-stepper` with Composer. Until published on Packagist, add the VCS
   repository `https://github.com/HaithamMaznai7/FormStepper.git` and require `dev-main`.
+- Requires PHP 8.3+ and Laravel 10.48.29+/11/12/13. Prefer maintained Laravel releases; legacy
+  compatibility does not guarantee security support.
+- Install `doctrine/dbal:^3.9` before the ownership upgrade on Laravel 10 with SQLite.
 - Publish the configuration and migrations with `php artisan vendor:publish --tag="form-stepper-config"` and
   `php artisan vendor:publish --tag="form-stepper-migrations"`.
 - Set table names and route settings before running `php artisan migrate`.

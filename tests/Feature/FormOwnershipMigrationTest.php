@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -30,6 +31,9 @@ it('upgrades legacy ownership while preserving form state and tenant data', func
     $migration->up();
     $form = DB::table('legacy_forms')->first();
 
+    expect(DB::selectOne("SELECT sql FROM sqlite_master WHERE name = 'legacy_forms'")->sql)
+        ->toContain("'submitted'");
+
     expect(Schema::hasColumn('legacy_forms', 'creator_type'))->toBeFalse()
         ->and(Schema::hasColumn('legacy_forms', 'creator_id'))->toBeFalse()
         ->and(Schema::hasColumn('legacy_forms', 'current_step'))->toBeFalse()
@@ -41,6 +45,9 @@ it('upgrades legacy ownership while preserving form state and tenant data', func
     $migration->up();
     expect(DB::table('legacy_forms')->count())->toBe(1)
         ->and(fn () => $migration->down())->toThrow(RuntimeException::class);
+
+    expect(fn () => DB::table('legacy_forms')->update(['status' => 'invalid']))
+        ->toThrow(QueryException::class);
 });
 
 it('upgrades fresh personal forms to support tenants without losing data', function () {
@@ -77,6 +84,7 @@ it('removes a constrained legacy creator without deleting its requester', functi
     Schema::create('forms', function (Blueprint $table) {
         $table->id();
         $table->foreignId('creator_id')->nullable()->constrained('old_users');
+        $table->foreignId('approved_by')->nullable()->constrained('old_users');
         $table->nullableMorphs('requester');
         $table->string('current_step')->nullable();
         $table->string('status')->default('draft');
@@ -84,6 +92,7 @@ it('removes a constrained legacy creator without deleting its requester', functi
     DB::table('old_users')->insert(['id' => 1]);
     DB::table('forms')->insert([
         'creator_id' => 1,
+        'approved_by' => 1,
         'requester_type' => 'user',
         'requester_id' => 1,
         'status' => 'draft',
@@ -92,7 +101,8 @@ it('removes a constrained legacy creator without deleting its requester', functi
     $upgrade->up();
 
     expect(Schema::hasColumn('forms', 'creator_id'))->toBeFalse()
-        ->and(Schema::getForeignKeys('forms'))->toBe([])
+        ->and(array_column(Schema::getForeignKeys('forms'), 'columns'))->toBe([['approved_by']])
+        ->and(DB::table('forms')->value('approved_by'))->toBe(1)
         ->and(DB::table('forms')->value('requester_id'))->toBe(1)
         ->and(DB::table('old_users')->count())->toBe(1);
 });

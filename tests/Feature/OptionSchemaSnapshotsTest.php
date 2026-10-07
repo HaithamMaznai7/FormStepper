@@ -18,10 +18,7 @@ class SnapshotOption extends Model implements ProvidesFormRequirements
 
     protected $guarded = [];
 
-    protected function casts(): array
-    {
-        return ['requirements' => 'array'];
-    }
+    protected $casts = ['requirements' => 'array'];
 
     public function formOptionKey(): string
     {
@@ -55,10 +52,7 @@ class SnapshotLookupInput extends Model
 
     protected $guarded = [];
 
-    protected function casts(): array
-    {
-        return ['definition' => 'array'];
-    }
+    protected $casts = ['definition' => 'array'];
 }
 
 beforeEach(function () {

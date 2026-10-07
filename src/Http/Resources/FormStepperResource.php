@@ -41,7 +41,7 @@ abstract class FormStepperResource extends JsonResource
     /**
      * Resolve items into plain arrays using the configured resource class.
      *
-     * @param  iterable<mixed>  $items
+     * @param  iterable<int, mixed>  $items
      * @return Collection<int, array<array-key, mixed>>
      */
     protected function resolveCollection(string $name, iterable $items, Request $request): Collection

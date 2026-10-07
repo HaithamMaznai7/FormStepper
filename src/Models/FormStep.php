@@ -23,13 +23,10 @@ class FormStep extends Model
         'saved_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'values' => 'array',
-            'saved_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'values' => 'array',
+        'saved_at' => 'datetime',
+    ];
 
     public function getTable(): string
     {

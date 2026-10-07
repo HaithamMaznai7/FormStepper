@@ -43,13 +43,10 @@ class Form extends Model
         'completed_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'definition' => 'array',
-            'completed_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'definition' => 'array',
+        'completed_at' => 'datetime',
+    ];
 
     public function getTable(): string
     {

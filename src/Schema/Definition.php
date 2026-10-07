@@ -29,6 +29,7 @@ abstract class Definition implements Arrayable, Jsonable, JsonSerializable
         return $this->definition;
     }
 
+    /** @param int $options */
     public function toJson($options = 0): string
     {
         return json_encode($this->definition, $options | JSON_THROW_ON_ERROR);

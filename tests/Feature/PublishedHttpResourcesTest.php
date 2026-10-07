@@ -8,6 +8,14 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
+it('publishes migrations on every supported Laravel version', function () {
+    $paths = ServiceProvider::pathsToPublish(FormStepperServiceProvider::class, 'form-stepper-migrations');
+
+    expect(array_values($paths))->toBe([database_path('migrations')])
+        ->and(is_file(array_key_first($paths).'/2026_01_01_000000_create_forms_table.php'))->toBeTrue()
+        ->and(is_file(array_key_first($paths).'/2026_10_07_000000_create_form_library_tables.php'))->toBeTrue();
+});
+
 it('publishes routes and an application controller under separate tags', function () {
     $routes = ServiceProvider::pathsToPublish(FormStepperServiceProvider::class, 'form-stepper-routes');
     $controllers = ServiceProvider::pathsToPublish(FormStepperServiceProvider::class, 'form-stepper-controller');

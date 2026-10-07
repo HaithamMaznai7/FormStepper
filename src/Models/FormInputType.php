@@ -29,14 +29,11 @@ class FormInputType extends Model
         'has_options',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_system' => 'boolean',
-            'has_children' => 'boolean',
-            'has_options' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'is_system' => 'boolean',
+        'has_children' => 'boolean',
+        'has_options' => 'boolean',
+    ];
 
     public function getTable(): string
     {

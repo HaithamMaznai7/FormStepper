@@ -33,13 +33,10 @@ class FormStepTemplate extends Model
         'requires_authentication',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'repeatable' => 'boolean',
-            'requires_authentication' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'repeatable' => 'boolean',
+        'requires_authentication' => 'boolean',
+    ];
 
     public function getTable(): string
     {

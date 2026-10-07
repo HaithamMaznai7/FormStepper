@@ -23,9 +23,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         php: [8.3, 8.4, 8.5]
-        laravel: [11.*, 12.*, 13.*]
+        laravel: [10.*, 11.*, 12.*, 13.*]
         stability: [prefer-lowest, prefer-stable]
         include:
+          - laravel: 10.*
+            testbench: 8.*
           - laravel: 11.*
             testbench: 9.*
           - laravel: 12.*
@@ -48,8 +50,8 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Prepare Laravel 11 dependencies
-        if: matrix.laravel == '11.*'
+      - name: Prepare legacy Laravel dependencies
+        if: matrix.laravel == '10.*' || matrix.laravel == '11.*'
         shell: bash
         run: |
           composer remove laravel/pao --dev --no-interaction --no-update
@@ -62,6 +64,8 @@ jobs:
           composer run prepare
 
       - name: PHPStan
+        # Larastan 2 uses pre-Laravel-11 relation generics; analyse with the modern lanes.
+        if: matrix.laravel != '10.*'
         run: composer analyse
 
       - name: Linter

@@ -73,9 +73,16 @@ class FormStepperServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../public' => public_path('vendor/form-stepper'),
         ], ['form-stepper', 'form-stepper-assets']);
-        $this->publishesMigrations([
+        $migrations = [
             __DIR__.'/../database/migrations' => database_path('migrations'),
-        ], ['form-stepper', 'form-stepper-migrations']);
+        ];
+        $migrationTags = ['form-stepper', 'form-stepper-migrations'];
+
+        if (version_compare($this->app->version(), '11.0', '>=')) {
+            $this->publishesMigrations($migrations, $migrationTags);
+        } else {
+            $this->publishes($migrations, $migrationTags);
+        }
         $this->commands([
             FormStepperCommand::class,
         ]);

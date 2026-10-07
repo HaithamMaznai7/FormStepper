@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Types\Type;
+use HaithamMaznai\FormStepper\Support\OwnershipStatusType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +45,19 @@ return new class extends Migration
             throw new RuntimeException('Tenant identity columns must both exist or both be absent.');
         }
 
+        $legacySqlite = version_compare(app()->version(), '11.0', '<')
+            && DB::connection()->getDriverName() === 'sqlite';
+
+        if ($legacySqlite) {
+            if (! class_exists(Type::class)) {
+                throw new RuntimeException('Install doctrine/dbal:^3.9 before upgrading ownership on Laravel 10 with SQLite.');
+            }
+
+            if (! Type::hasType('enum')) {
+                Type::addType('enum', OwnershipStatusType::class);
+            }
+        }
+
         if ($hasOldStep) {
             Schema::table($tableName, function (Blueprint $table): void {
                 $table->renameColumn('current_step', 'current_step_id');
@@ -51,9 +68,6 @@ return new class extends Migration
             $table->string('status')->default('draft')->change();
         });
         DB::table($tableName)->where('status', 'completed')->update(['status' => 'submitted']);
-        Schema::table($tableName, function (Blueprint $table): void {
-            $table->enum('status', ['draft', 'submitted'])->default('draft')->change();
-        });
 
         $creatorColumns = [];
 
@@ -63,7 +77,9 @@ return new class extends Migration
             }
         }
 
-        if ($creatorColumns !== []) {
+        if ($creatorColumns !== [] && $legacySqlite) {
+            $this->dropSqliteCreator($tableName, $creatorColumns);
+        } elseif ($creatorColumns !== []) {
             foreach (Schema::getForeignKeys($tableName) as $foreignKey) {
                 if (array_intersect($creatorColumns, $foreignKey['columns']) !== []) {
                     Schema::table($tableName, function (Blueprint $table) use ($foreignKey): void {
@@ -85,6 +101,10 @@ return new class extends Migration
             });
         }
 
+        Schema::table($tableName, function (Blueprint $table): void {
+            $table->enum('status', ['draft', 'submitted'])->default('draft')->change();
+        });
+
         if (config('form-stepper.tenant.enabled', false) && ! $hasTenantType) {
             Schema::table($tableName, function (Blueprint $table): void {
                 $table->string('tenant_type')->nullable();
@@ -97,5 +117,42 @@ return new class extends Migration
     public function down(): void
     {
         throw new RuntimeException('Form ownership cannot be rolled back without restoring deleted creator data from backup.');
+    }
+
+    /** @param list<string> $columns */
+    private function dropSqliteCreator(string $tableName, array $columns): void
+    {
+        $connection = DB::connection();
+
+        if (! method_exists($connection, 'getDoctrineSchemaManager')) {
+            throw new RuntimeException('Laravel 10 SQLite ownership upgrades require the Doctrine schema manager.');
+        }
+
+        /** @var AbstractSchemaManager<AbstractPlatform> $manager */
+        $manager = $connection->getDoctrineSchemaManager();
+        $original = $manager->introspectTable($connection->getTablePrefix().$tableName);
+        $updated = clone $original;
+
+        foreach ($updated->getForeignKeys() as $name => $foreignKey) {
+            if (array_intersect($columns, $foreignKey->getLocalColumns()) !== []) {
+                $updated->removeForeignKey($name);
+            }
+        }
+
+        foreach ($updated->getIndexes() as $index) {
+            if (array_intersect($columns, $index->getColumns()) !== []) {
+                $updated->dropIndex($index->getName());
+            }
+        }
+
+        foreach ($columns as $column) {
+            $updated->dropColumn($column);
+        }
+
+        $diff = $manager->createComparator()->compareTables($original, $updated);
+
+        foreach ($manager->getDatabasePlatform()->getAlterTableSQL($diff) as $sql) {
+            $connection->statement($sql);
+        }
     }
 };

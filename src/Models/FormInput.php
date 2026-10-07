@@ -41,15 +41,12 @@ class FormInput extends Model
         'extra',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'rules' => 'array',
-            'default_value' => 'json',
-            'options' => 'array',
-            'extra' => 'array',
-        ];
-    }
+    protected $casts = [
+        'rules' => 'array',
+        'default_value' => 'json',
+        'options' => 'array',
+        'extra' => 'array',
+    ];
 
     public function getTable(): string
     {
