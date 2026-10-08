@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## v1.1.5 - 2026-10-08
 
 - Replace builder `steps()` with `startWithSteps()` and `endWithSteps()`, preserving start,
   option, and end boundaries while merging shared keys into their first group.
@@ -10,6 +10,11 @@
   locale files instead of authored schema text.
 - Update admin editors, schema authoring, migration guidance, and regression tests.
 - Cover both strict rejection and default stripping of extra input values.
+- Upgrade: rename custom builder `steps()` hooks to `startWithSteps()` or
+  `endWithSteps()`, run the library priority migration, and move authored display
+  text into the published locale files.
+- Release validation: static analysis, formatting, and 100% type coverage pass;
+  all 80 tests pass with 403 assertions.
 
 ## v1.1.4 - 2026-10-07
 
