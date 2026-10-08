@@ -37,7 +37,7 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 ### 2. Register each workflow builder
 
 - Extend `HaithamMaznai\FormStepper\Forms\FormBuilder` for each form type.
-- Implement `formType()` and optionally override `mode()`, `steps()`, `resolveOptions()`, and the
+- Implement `formType()` and optionally override `mode()`, `startWithSteps()` / `endWithSteps()`, `resolveOptions()`, and the
   requester, tenant, authorization, and listing-scope methods. Creator ownership is not supported.
 - Register each builder class under the `builders` config key.
 
@@ -49,11 +49,19 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
   `form_options` table stores selected references, not catalog definitions.
 - Build snapshots with `Schema\Input::make()` / `fromArray()`, `Schema\Step::make()`, and
   `Schema\Requirements::make(...$steps)`. Store `toArray()` in array-cast JSON columns, not
-  `toJson()` (which would double-encode). Return `toArray()` from `formSteps()` and builder `steps()`.
+  `toJson()` (which would double-encode). Return `toArray()` from `formSteps()` and builder `startWithSteps()` / `endWithSteps()`.
 - Lookup edits do not mutate saved option snapshots. Rebuild options explicitly, then recompute
   selected options on drafts that should adopt the new definitions.
 - Use matching step/input keys and compatible metadata for merging. Single mode keeps the same
   step-grouped schema and values; it changes submission/UI navigation, not option storage.
+- Set integer step `priority` (default 100): nonnegative ranks ascending, then negative ranks
+  ascending (-1 last), stable ties, review always last. Shared step priorities must match.
+- Replace builder `steps()` with `startWithSteps()` and `endWithSteps()`. Boundaries are start,
+  options, end; priority only sorts within each group. Shared keys stay in their first group.
+- Do not author input labels/placeholders or step titles/subtitles. Publish `form-stepper-lang`
+  and define them in `forms.php` under `defaults.inputs/steps` or
+  `contexts.{formType}.{mode}.{requesterMorphType}.{tenantMorphType}.inputs/steps`.
+  Use `guest`/`none` for absent identities and URL-encode segments (dots as `%2E`).
 - Make requester and tenant models implement `ProvidesAvailableTypes` when their available form
   types should restrict the schema.
 - Enable `tenant.enabled` before migrating to create tenant morph columns. Configure
@@ -87,6 +95,10 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
   be rolled back without restoring a backup.
 - When claiming a draft, the builder's `prefillValues()` hook fills missing requester fields while
   preserving values the guest already entered.
+- For unsaved display defaults use `defaultValues(?Model $requester = null, ?Model $tenant = null)`,
+  keyed by step then input. Resources expose `default` separately from saved `value`; no rows
+  are written and defaults do not complete steps. Complex children and repeat instances inherit
+  defaults. Locale text is resolved on each render, never stored in the schema.
 - Mark authentication-gated steps with `requires-authentication: true`; guest drafts remain saved
   but cannot be submitted until claimed by an authenticated requester.
 - Render the returned arrayable schema with the host app's chosen UI; option catalogs and any
@@ -96,6 +108,8 @@ Use this skill when a Laravel application needs to integrate the Form Stepper pa
 
 - Publish and run the `create_form_library_tables` migration (input types with seeded system
   types, lookup inputs with complex children, library steps with ordered inputs).
+- Existing libraries need the `add_library_step_priority` migration. Legacy display-text
+  columns are preserved but ignored; move their text into published locale files.
 - Set `form-stepper.admin.enabled` to `true` and define the `manage-form-stepper` Gate; routes use
   `['web', 'auth']` under `form-stepper/admin`.
 - Snapshot library records into options with `FormStepTemplate::toStep()` and

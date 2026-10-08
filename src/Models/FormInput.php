@@ -16,10 +16,8 @@ use InvalidArgumentException;
  *
  * @property int $id
  * @property string $key
- * @property string|null $label
  * @property string $type
  * @property list<mixed>|null $rules
- * @property string|null $placeholder
  * @property mixed $default_value
  * @property list<array{value: string, label: string}>|null $options
  * @property array<string, mixed>|null $extra
@@ -32,10 +30,8 @@ class FormInput extends Model
 {
     protected $fillable = [
         'key',
-        'label',
         'type',
         'rules',
-        'placeholder',
         'default_value',
         'options',
         'extra',
@@ -152,8 +148,6 @@ class FormInput extends Model
         }
 
         $attributes = array_filter([
-            'label' => $this->label,
-            'placeholder' => $this->placeholder,
             'rules' => $this->rules ?? [],
             'extra' => $extra === [] ? null : $extra,
         ], static fn (mixed $value): bool => $value !== null);

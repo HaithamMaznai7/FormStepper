@@ -15,8 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  *
  * @property int $id
  * @property string $key
- * @property string|null $title
- * @property string|null $subtitle
+ * @property int $priority
  * @property bool $repeatable
  * @property string|null $repeat_name
  * @property bool $requires_authentication
@@ -26,17 +25,19 @@ class FormStepTemplate extends Model
 {
     protected $fillable = [
         'key',
-        'title',
-        'subtitle',
+        'priority',
         'repeatable',
         'repeat_name',
         'requires_authentication',
     ];
 
     protected $casts = [
+        'priority' => 'integer',
         'repeatable' => 'boolean',
         'requires_authentication' => 'boolean',
     ];
+
+    protected $attributes = ['priority' => 100];
 
     public function getTable(): string
     {
@@ -78,11 +79,10 @@ class FormStepTemplate extends Model
             array_values($this->inputs->map(static fn (FormInput $input): Input => $input->toInput())->all()),
             [
                 ...array_filter([
-                    'title' => $this->title,
-                    'subtitle' => $this->subtitle,
                     'repeat-name' => $this->repeat_name,
                 ], static fn (mixed $value): bool => $value !== null),
                 'repeatable' => $this->repeatable,
+                'priority' => $this->priority,
                 'requires-authentication' => $this->requires_authentication,
                 ...$attributes,
             ],

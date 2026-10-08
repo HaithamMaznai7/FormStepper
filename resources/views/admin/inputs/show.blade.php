@@ -19,8 +19,6 @@
         <dl class="grid content-start gap-4 rounded-lg border border-slate-200 bg-white p-6 sm:grid-cols-2">
             <div><dt class="text-xs uppercase text-slate-500">Key</dt><dd class="font-mono">{{ $input->key }}</dd></div>
             <div><dt class="text-xs uppercase text-slate-500">Type</dt><dd>{{ $input->inputType?->name ?? $input->type }} <span class="font-mono text-xs text-slate-500">({{ $input->type }})</span></dd></div>
-            <div><dt class="text-xs uppercase text-slate-500">Label</dt><dd>{{ $input->label ?: '—' }}</dd></div>
-            <div><dt class="text-xs uppercase text-slate-500">Placeholder</dt><dd>{{ $input->placeholder ?: '—' }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-xs uppercase text-slate-500">Rules</dt><dd class="font-mono text-sm">{{ implode(' | ', array_map(fn ($rule) => is_scalar($rule) ? (string) $rule : json_encode($rule), $input->rules ?? [])) ?: '—' }}</dd></div>
             @if ($input->children->isNotEmpty())
                 <div class="sm:col-span-2"><dt class="text-xs uppercase text-slate-500">Children</dt>

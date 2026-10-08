@@ -7,7 +7,6 @@ namespace HaithamMaznai\FormStepper\Http\Controllers\Admin;
 use HaithamMaznai\FormStepper\Models\FormInput;
 use HaithamMaznai\FormStepper\Models\FormStepTemplate;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +19,7 @@ class StepTemplateController extends AdminController
         $query = FormStepTemplate::query()->withCount('inputs')->orderBy('key');
 
         if (is_string($search = $request->query('q')) && $search !== '') {
-            $query->where(fn (Builder $where): Builder => $where->where('key', 'like', "%{$search}%")
-                ->orWhere('title', 'like', "%{$search}%"));
+            $query->where('key', 'like', "%{$search}%");
         }
 
         return $this->view('form-stepper::admin.steps.index', [
@@ -98,8 +96,7 @@ class StepTemplateController extends AdminController
                 Rule::notIn(['review']),
                 Rule::unique($step->getTable(), 'key')->ignore($step->exists ? $step : null),
             ],
-            'title' => ['nullable', 'string', 'max:255'],
-            'subtitle' => ['nullable', 'string', 'max:255'],
+            'priority' => ['nullable', 'integer', 'between:-2147483648,2147483647'],
             'repeat_name' => ['nullable', 'required_if_accepted:repeatable', 'string', 'max:150', 'regex:/^[A-Za-z0-9_]+$/'],
             'inputs' => ['required', 'array', 'min:1'],
             'inputs.*' => ['integer', Rule::exists($inputsTable, 'id')],
@@ -115,8 +112,7 @@ class StepTemplateController extends AdminController
         $repeatable = $request->boolean('repeatable');
         $attributes = [
             'key' => $data['key'],
-            'title' => $data['title'] ?? null,
-            'subtitle' => $data['subtitle'] ?? null,
+            'priority' => (int) ($data['priority'] ?? 100),
             'repeatable' => $repeatable,
             'repeat_name' => $repeatable ? ($data['repeat_name'] ?? null) : null,
             'requires_authentication' => $request->boolean('requires_authentication'),

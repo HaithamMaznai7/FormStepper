@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HaithamMaznai\FormStepper\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -37,5 +38,23 @@ class FormStep extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * @param  Builder<FormStep>  $query
+     * @return Builder<FormStep>
+     */
+    public function scopeRequireds(Builder $query): Builder
+    {
+        return $query->whereNull('saved_at');
+    }
+
+    /**
+     * @param  Builder<FormStep>  $query
+     * @return Builder<FormStep>
+     */
+    public function scopePasseds(Builder $query): Builder
+    {
+        return $query->whereNotNull('saved_at');
     }
 }

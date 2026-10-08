@@ -39,7 +39,7 @@ class AdminTestBuilder extends FormBuilder
         return 'stepper';
     }
 
-    public function steps(): array
+    public function startWithSteps(): array
     {
         return [
             [
@@ -158,7 +158,6 @@ it('manages lookup inputs with choices, rules, defaults and complex children', f
 
     $this->post(route('form-stepper.admin.inputs.store'), [
         'key' => 'car_type',
-        'label' => 'Car type',
         'type' => 'single-selection',
         'rules' => "required|string\nregex:/^[a-z|]+$/",
         'options' => "sedan|Sedan\nsuv",
@@ -172,7 +171,6 @@ it('manages lookup inputs with choices, rules, defaults and complex children', f
         ->and($carType->toInput()->toArray())->toMatchArray([
             'key' => 'car_type',
             'type' => 'single-selection',
-            'label' => 'Car type',
             'value' => 'sedan',
             'extra' => ['icon' => 'car', 'options' => $carType->options],
         ]);
@@ -213,7 +211,7 @@ it('manages ordered library steps that snapshot lookup inputs', function () {
 
     $this->post(route('form-stepper.admin.steps.store'), [
         'key' => 'contact',
-        'title' => 'Contact',
+        'priority' => 1,
         'inputs' => [$name->id, $email->id],
         'positions' => [$name->id => 2, $email->id => 1],
         'requires_authentication' => '1',
@@ -222,7 +220,8 @@ it('manages ordered library steps that snapshot lookup inputs', function () {
     $snapshot = $step->toStep()->toArray();
 
     expect(array_column($snapshot['requirements'], 'key'))->toBe(['email', 'name'])
-        ->and($snapshot)->toMatchArray(['title' => 'Contact', 'requires-authentication' => true, 'repeatable' => false]);
+        ->and($snapshot)->toMatchArray(['priority' => 1, 'requires-authentication' => true, 'repeatable' => false])
+        ->and($snapshot)->not->toHaveKey('title');
 
     $this->put(route('form-stepper.admin.steps.update', $step), [
         'key' => 'contact',

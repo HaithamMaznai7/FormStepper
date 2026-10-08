@@ -26,17 +26,8 @@
                 @endforeach
             </select>
         </div>
-        <div>
-            <label for="label" class="block text-sm font-medium">Label</label>
-            <input id="label" name="label" value="{{ old('label', $input->label) }}"
-                   class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-        </div>
-        <div>
-            <label for="placeholder" class="block text-sm font-medium">Placeholder</label>
-            <input id="placeholder" name="placeholder" value="{{ old('placeholder', $input->placeholder) }}"
-                   class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-        </div>
     </div>
+    <p class="text-xs text-slate-500">Labels and placeholders are resolved from the published locale files for the form context.</p>
 
     <div>
         <label for="rules" class="block text-sm font-medium">Validation rules</label>

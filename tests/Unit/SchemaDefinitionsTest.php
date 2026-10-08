@@ -26,11 +26,11 @@ it('builds arrayable steps and inputs and round trips their JSON snapshot', func
 });
 
 it('copies a lookup definition instead of retaining a live reference', function () {
-    $lookup = ['key' => 'name', 'type' => 'input', 'label' => 'Original'];
+    $lookup = ['key' => 'name', 'type' => 'input', 'value' => 'Original'];
     $input = Input::fromArray($lookup);
-    $lookup['label'] = 'Changed';
+    $lookup['value'] = 'Changed';
 
-    expect($input->toArray()['label'])->toBe('Original')
+    expect($input->toArray()['value'])->toBe('Original')
         ->and(Step::fromArray(['key' => 'contact', 'requirements' => [$input->toArray()]])->toArray()['key'])
         ->toBe('contact');
 });

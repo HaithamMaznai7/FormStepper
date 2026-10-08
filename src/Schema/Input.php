@@ -30,7 +30,16 @@ final class Input extends Definition
     /** @param array<string, mixed> $definition */
     public static function fromArray(array $definition): self
     {
+        unset($definition['label'], $definition['placeholder']);
         (new SchemaNormalizer)->normalize([['key' => 'input-definition', 'requirements' => [$definition]]]);
+
+        if (($definition['type'] ?? null) === 'complex') {
+            $childrenKey = array_key_exists('requirements', $definition) ? 'requirements' : 'children';
+            $definition[$childrenKey] = array_map(
+                static fn (array $child): array => self::fromArray($child)->toArray(),
+                $definition[$childrenKey] ?? [],
+            );
+        }
 
         return new self($definition);
     }

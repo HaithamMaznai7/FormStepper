@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace HaithamMaznai\FormStepper\Http\Resources;
 
+use HaithamMaznai\FormStepper\Forms\FormBuilder;
+use HaithamMaznai\FormStepper\Forms\FormBuilderRegistry;
 use HaithamMaznai\FormStepper\Models\Form;
+use HaithamMaznai\FormStepper\Support\FormOwnership;
+use HaithamMaznai\FormStepper\Support\FormPresentation;
 use Illuminate\Http\Request;
 
 /**
@@ -15,6 +19,15 @@ use Illuminate\Http\Request;
 class FormResource extends FormStepperResource
 {
     private ?string $resumeToken = null;
+
+    private ?FormBuilder $builder = null;
+
+    public function withBuilder(?FormBuilder $builder): static
+    {
+        $this->builder = $builder;
+
+        return $this;
+    }
 
     public function withResumeToken(?string $resumeToken): static
     {
@@ -33,6 +46,13 @@ class FormResource extends FormStepperResource
         $steps = $definition['steps'] ?? [];
         $isSingle = $form->mode === 'single';
         $values = $form->valuesByStep();
+        $registry = app(FormBuilderRegistry::class);
+        $builder = $this->builder ?? (in_array($form->type, $registry->types(), true) ? $registry->resolve($form->type) : null);
+        $defaults = $builder?->defaultValues(
+            $form->requester,
+            FormOwnership::tenantEnabled() ? $form->tenant : null,
+        ) ?? [];
+        $presentation = app(FormPresentation::class);
 
         if (! $isSingle && ($definition['mode'] ?? null) === 'stepper') {
             $steps[] = [
@@ -57,7 +77,7 @@ class FormResource extends FormStepperResource
             'step',
             array_map(
                 static fn (array $step): array => [
-                    'definition' => $step,
+                    'definition' => $presentation->step($form, $step, $defaults[$step['key']] ?? []),
                     'values' => $values[$step['key']] ?? null,
                 ],
                 $steps,

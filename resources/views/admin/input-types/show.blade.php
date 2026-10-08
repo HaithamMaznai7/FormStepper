@@ -22,7 +22,7 @@
     <h2 class="mb-3 mt-8 text-lg font-semibold">Inputs using this type ({{ $inputs->count() }})</h2>
     <ul class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
         @forelse ($inputs as $input)
-            <li class="px-4 py-3"><a href="{{ route($admin.'inputs.show', $input) }}" class="font-mono text-indigo-600 hover:underline">{{ $input->key }}</a> <span class="text-slate-500">{{ $input->label }}</span></li>
+            <li class="px-4 py-3"><a href="{{ route($admin.'inputs.show', $input) }}" class="font-mono text-indigo-600 hover:underline">{{ $input->key }}</a></li>
         @empty
             <li class="px-4 py-6 text-center text-slate-500">No inputs use this type.</li>
         @endforelse

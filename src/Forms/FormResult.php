@@ -19,6 +19,7 @@ class FormResult implements Arrayable
     public function __construct(
         private readonly Form $form,
         private readonly ?string $resumeToken = null,
+        private readonly ?FormBuilder $builder = null,
     ) {}
 
     public function form(): Form
@@ -36,6 +37,7 @@ class FormResult implements Arrayable
 
         if ($resource instanceof FormResource) {
             $resource->withResumeToken($this->resumeToken);
+            $resource->withBuilder($this->builder);
         }
 
         return $resource;

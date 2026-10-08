@@ -9,7 +9,7 @@
 
 @section('content')
     <form method="GET" class="mb-4 flex flex-wrap gap-3">
-        <input type="search" name="q" value="{{ request('q') }}" placeholder="Search key or label" aria-label="Search inputs"
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="Search key" aria-label="Search inputs"
                class="rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
         <select name="type" aria-label="Filter by type" class="rounded-md border-slate-300 text-sm shadow-sm">
             <option value="">All types</option>
@@ -25,7 +25,6 @@
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-4 py-3">Key</th>
-                    <th class="px-4 py-3">Label</th>
                     <th class="px-4 py-3">Type</th>
                     <th class="px-4 py-3">Rules</th>
                     <th class="px-4 py-3">Used in</th>
@@ -36,14 +35,13 @@
                 @forelse ($inputs as $input)
                     <tr>
                         <td class="px-4 py-3 font-mono"><a href="{{ route($admin.'inputs.show', $input) }}" class="text-indigo-600 hover:underline">{{ $input->key }}</a></td>
-                        <td class="px-4 py-3">{{ $input->label ?: '—' }}</td>
                         <td class="px-4 py-3 font-mono text-xs">{{ $input->type }}</td>
                         <td class="px-4 py-3 font-mono text-xs text-slate-600">{{ implode('|', array_map(fn ($rule) => is_scalar($rule) ? (string) $rule : json_encode($rule), $input->rules ?? [])) ?: '—' }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $input->step_templates_count }} steps · {{ $input->parents_count }} complex</td>
                         <td class="px-4 py-3 text-right"><a href="{{ route($admin.'inputs.edit', $input) }}" class="text-indigo-600 hover:underline">Edit</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No lookup inputs found.</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No lookup inputs found.</td></tr>
                 @endforelse
             </tbody>
         </table>

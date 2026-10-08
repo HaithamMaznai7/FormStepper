@@ -9,7 +9,7 @@
 
 @section('content')
     <form method="GET" class="mb-4 flex flex-wrap gap-3">
-        <input type="search" name="q" value="{{ request('q') }}" placeholder="Search key or title" aria-label="Search steps"
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="Search key" aria-label="Search steps"
                class="rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
         <button class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50">Filter</button>
     </form>
@@ -19,7 +19,7 @@
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-4 py-3">Key</th>
-                    <th class="px-4 py-3">Title</th>
+                    <th class="px-4 py-3">Priority</th>
                     <th class="px-4 py-3">Inputs</th>
                     <th class="px-4 py-3">Flags</th>
                     <th class="px-4 py-3"><span class="sr-only">Actions</span></th>
@@ -29,7 +29,7 @@
                 @forelse ($steps as $step)
                     <tr>
                         <td class="px-4 py-3 font-mono"><a href="{{ route($admin.'steps.show', $step) }}" class="text-indigo-600 hover:underline">{{ $step->key }}</a></td>
-                        <td class="px-4 py-3">{{ $step->title ?: '—' }}</td>
+                        <td class="px-4 py-3">{{ $step->priority }}</td>
                         <td class="px-4 py-3">{{ $step->inputs_count }}</td>
                         <td class="px-4 py-3 space-x-1">
                             @if ($step->repeatable)<span class="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">repeatable: {{ $step->repeat_name }}</span>@endif

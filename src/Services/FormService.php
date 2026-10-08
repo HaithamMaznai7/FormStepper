@@ -89,13 +89,13 @@ class FormService
                 ]);
             }
 
-            $this->storePrefillValues($form, $builder, $definition, $requester);
+            $this->storePrefillValues($form, $builder, $definition, $requester, FormOwnership::tenantEnabled() ? $tenant : null);
 
             return $form;
         });
 
         return [
-            'result' => new FormResult($form->load(['steps', 'selectedOptions']), $token),
+            'result' => new FormResult($form->load(['steps', 'selectedOptions']), $token, $builder),
             'form' => $form,
             'resume_token' => $token,
         ];
@@ -145,7 +145,7 @@ class FormService
             return $form;
         });
 
-        return new FormResult($updatedForm->load(['steps', 'selectedOptions']));
+        return new FormResult($updatedForm->load(['steps', 'selectedOptions']), builder: $builder);
     }
 
     /**
@@ -375,7 +375,7 @@ class FormService
                 : null;
             $form->save();
 
-            $prefill = $builder->prefillValues($requester);
+            $prefill = $builder->prefillValues($requester, FormOwnership::tenantEnabled() ? $tenant : null);
 
             foreach ($prefill as $stepKey => $values) {
                 $step = $this->findStep($form, $stepKey);
@@ -787,8 +787,9 @@ class FormService
         FormBuilder $builder,
         FormDefinition $definition,
         ?Model $requester,
+        ?Model $tenant,
     ): void {
-        $prefill = $builder->prefillValues($requester);
+        $prefill = $builder->prefillValues($requester, $tenant);
         $steps = [];
 
         foreach ($definition->steps as $step) {

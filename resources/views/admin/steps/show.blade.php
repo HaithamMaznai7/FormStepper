@@ -16,8 +16,7 @@
         <div class="space-y-6">
             <dl class="grid gap-4 rounded-lg border border-slate-200 bg-white p-6 sm:grid-cols-2">
                 <div><dt class="text-xs uppercase text-slate-500">Key</dt><dd class="font-mono">{{ $step->key }}</dd></div>
-                <div><dt class="text-xs uppercase text-slate-500">Title</dt><dd>{{ $step->title ?: '—' }}</dd></div>
-                <div class="sm:col-span-2"><dt class="text-xs uppercase text-slate-500">Subtitle</dt><dd>{{ $step->subtitle ?: '—' }}</dd></div>
+                <div><dt class="text-xs uppercase text-slate-500">Priority</dt><dd>{{ $step->priority }}</dd></div>
                 <div><dt class="text-xs uppercase text-slate-500">Repeatable</dt><dd>{{ $step->repeatable ? 'Yes ('.$step->repeat_name.')' : 'No' }}</dd></div>
                 <div><dt class="text-xs uppercase text-slate-500">Requires authentication</dt><dd>{{ $step->requires_authentication ? 'Yes' : 'No' }}</dd></div>
             </dl>
@@ -27,7 +26,6 @@
                     @foreach ($step->inputs as $input)
                         <li class="px-4 py-2 text-sm">
                             <a href="{{ route($admin.'inputs.show', $input) }}" class="font-mono text-indigo-600 hover:underline">{{ $input->key }}</a>
-                            <span class="text-slate-500">{{ $input->label }}</span>
                             <span class="rounded bg-slate-100 px-1.5 text-xs text-slate-600">{{ $input->type }}</span>
                         </li>
                     @endforeach

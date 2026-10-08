@@ -53,10 +53,15 @@ class SchemaNormalizer
             $normalizedRequirements[] = $normalized;
         }
 
+        $priority = $step['priority'] ?? 100;
+
+        if (! is_int($priority)) {
+            throw new InvalidArgumentException("Priority for step [{$key}] must be an integer.");
+        }
+
         return [
             'key' => $key,
-            'title' => $step['title'] ?? null,
-            'subtitle' => $step['subtitle'] ?? null,
+            'priority' => $priority,
             'repeatable' => (bool) ($step['repeatable'] ?? false),
             'repeat_name' => $step['repeat-name'] ?? $step['repeat_name'] ?? null,
             'requires_authentication' => (bool) ($step['requires-authentication'] ?? $step['requires_authentication'] ?? false),
@@ -94,7 +99,7 @@ class SchemaNormalizer
             'scope' => $this->scope($requirement),
         ];
 
-        foreach (['value', 'label', 'placeholder', 'extra'] as $attribute) {
+        foreach (['value', 'extra'] as $attribute) {
             if (array_key_exists($attribute, $requirement)) {
                 $normalized[$attribute] = $requirement[$attribute];
             }

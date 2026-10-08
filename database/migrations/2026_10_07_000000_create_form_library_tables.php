@@ -32,10 +32,8 @@ return new class extends Migration
         Schema::create($inputsTable, function (Blueprint $table): void {
             $table->id();
             $table->string('key')->unique();
-            $table->string('label')->nullable();
             $table->string('type');
             $table->json('rules')->nullable();
-            $table->string('placeholder')->nullable();
             $table->json('default_value')->nullable();
             $table->json('options')->nullable();
             $table->json('extra')->nullable();
@@ -54,8 +52,7 @@ return new class extends Migration
         Schema::create($stepsTable, function (Blueprint $table): void {
             $table->id();
             $table->string('key')->unique();
-            $table->string('title')->nullable();
-            $table->string('subtitle')->nullable();
+            $table->integer('priority')->default(100);
             $table->boolean('repeatable')->default(false);
             $table->string('repeat_name')->nullable();
             $table->boolean('requires_authentication')->default(false);

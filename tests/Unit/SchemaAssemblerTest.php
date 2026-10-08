@@ -21,7 +21,7 @@ it('merges compatible inputs from selected options and builder steps', function 
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'vehicle-info',
@@ -82,7 +82,7 @@ it('filters a form type that the requester or tenant does not provide', function
             return 'b2b';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'billing',
@@ -113,7 +113,7 @@ it('rejects conflicting definitions for a shared input key', function () {
             return 'b2b';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'vehicle-info',

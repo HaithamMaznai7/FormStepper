@@ -29,6 +29,10 @@ class SchemaAssembler
         bool $guest,
         ?string $modeOverride = null,
     ): FormDefinition {
+        if (method_exists($builder, 'steps')) {
+            throw new InvalidArgumentException('Replace the removed FormBuilder::steps() hook with startWithSteps() or endWithSteps().');
+        }
+
         $mode = $modeOverride ?? $builder->mode();
 
         if (! in_array($mode, ['single', 'stepper'], true)) {
@@ -49,16 +53,19 @@ class SchemaAssembler
 
         $this->assertCompatible($options, $optionKeys);
 
-        $sources = [$builder->steps()];
+        $sources = [['group' => 0, 'steps' => $builder->startWithSteps()]];
 
         foreach ($options as $option) {
-            $sources[] = $option->formSteps();
+            $sources[] = ['group' => 1, 'steps' => $option->formSteps()];
         }
 
+        $sources[] = ['group' => 2, 'steps' => $builder->endWithSteps()];
         $steps = [];
+        $stepGroups = [];
 
         foreach ($sources as $source) {
-            foreach ($this->normalizer->normalize($source) as $step) {
+            foreach ($this->normalizer->normalize($source['steps']) as $step) {
+                $stepGroups[$step['key']] ??= $source['group'];
                 $steps[$step['key']] = isset($steps[$step['key']])
                     ? $this->mergeStep($steps[$step['key']], $step)
                     : $step;
@@ -101,6 +108,15 @@ class SchemaAssembler
             );
             $visibleSteps[] = $step;
         }
+
+        usort($visibleSteps, static function (array $left, array $right) use ($stepGroups): int {
+            $leftPriority = $left['priority'];
+            $rightPriority = $right['priority'];
+
+            return ($stepGroups[$left['key']] <=> $stepGroups[$right['key']])
+                ?: (($leftPriority < 0) <=> ($rightPriority < 0))
+                ?: ($leftPriority <=> $rightPriority);
+        });
 
         return new FormDefinition(
             $builder->formType(),
@@ -192,7 +208,7 @@ class SchemaAssembler
      */
     private function mergeStep(array $existing, array $incoming): array
     {
-        foreach (['title', 'subtitle', 'repeatable', 'repeat_name', 'requires_authentication'] as $key) {
+        foreach (['priority', 'repeatable', 'repeat_name', 'requires_authentication'] as $key) {
             if (
                 $existing[$key] !== $incoming[$key] &&
                 $existing[$key] !== null &&

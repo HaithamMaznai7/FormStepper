@@ -13,14 +13,10 @@
             <p class="mt-1 text-xs text-slate-500">Steps with the same key are merged across selected options. <code>review</code> is reserved.</p>
         </div>
         <div>
-            <label for="title" class="block text-sm font-medium">Title</label>
-            <input id="title" name="title" value="{{ old('title', $step->title) }}"
+            <label for="priority" class="block text-sm font-medium">Priority</label>
+            <input type="number" id="priority" name="priority" value="{{ old('priority', $step->priority ?? 100) }}"
                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-        </div>
-        <div class="sm:col-span-2">
-            <label for="subtitle" class="block text-sm font-medium">Subtitle</label>
-            <input id="subtitle" name="subtitle" value="{{ old('subtitle', $step->subtitle) }}"
-                   class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <p class="mt-1 text-xs text-slate-500">Ascending ranks, then negative ranks (-1 last). Display text comes from locale files.</p>
         </div>
     </div>
 
@@ -56,7 +52,6 @@
                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                     <label for="input-{{ $input->id }}" class="flex-1">
                         <span class="font-mono">{{ $input->key }}</span>
-                        <span class="text-slate-500">{{ $input->label }}</span>
                         <span class="ms-1 rounded bg-slate-100 px-1.5 text-xs text-slate-600">{{ $input->type }}</span>
                     </label>
                     <label class="sr-only" for="position-{{ $input->id }}">Order for {{ $input->key }}</label>

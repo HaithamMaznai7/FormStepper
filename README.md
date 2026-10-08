@@ -176,23 +176,21 @@ class ContactFormBuilder extends FormBuilder
         return 'stepper';
     }
 
-    public function steps(): array
+    public function startWithSteps(): array
     {
         return [
             [
                 'key' => 'contact-details',
-                'title' => 'Contact information',
+                'priority' => 1,
                 'requirements' => [
                     [
                         'key' => 'name',
                         'type' => 'input',
-                        'label' => 'Name',
                         'rules' => ['required', 'string', 'max:100'],
                     ],
                     [
                         'key' => 'email',
                         'type' => 'input',
-                        'label' => 'Email',
                         'rules' => ['required', 'email'],
                     ],
                 ],
@@ -315,7 +313,7 @@ class FormOption extends Model implements ProvidesFormRequirements
 ```
 
 These JSON columns are an example storage design, not package-migrated tables. `formSteps()` returns
-the same step structure as the builder's `steps()`. You can return hardcoded schemas instead.
+the same step structure as the builder's `startWithSteps()` / `endWithSteps()`. You can return hardcoded schemas instead.
 
 ### Create the option catalog table
 
@@ -359,7 +357,6 @@ use HaithamMaznai\FormStepper\Schema\Step;
 use HaithamMaznai\FormStepper\Schema\Requirements;
 
 $name = Input::make('name', attributes: [
-    'label' => 'Name',
     'rules' => ['required', 'string'],
 ]);
 
@@ -367,14 +364,14 @@ $inspectionRequirements = Requirements::make(
     Step::make('contact', [
         $name,
         Input::make('email', attributes: ['rules' => ['required', 'email']]),
-    ], ['title' => 'Contact']),
+    ], ['priority' => 1]),
 );
 
 $deliveryRequirements = Requirements::make(
     Step::make('contact', [
         $name,
         Input::make('phone', attributes: ['rules' => ['required', 'string']]),
-    ], ['title' => 'Contact']),
+    ], ['priority' => 1]),
 );
 ```
 
@@ -383,7 +380,7 @@ The APIs are:
 
 | Method | Purpose |
 |---|---|
-| `Input::make($key, $type = 'input', $attributes = [])` | Create an input; attributes contain rules, labels, scopes, or metadata. |
+| `Input::make($key, $type = 'input', $attributes = [])` | Create an input; attributes contain rules, scopes, defaults, or metadata. |
 | `Input::complex($key, $children, $attributes = [])` | Create a complex input from a list of `Input` instances. |
 | `Input::fromArray($definition)` | Load a complete raw input definition from a lookup record. |
 | `Step::make($key, $inputs = [], $attributes = [])` | Create a step from a list of `Input` instances. |
@@ -396,13 +393,13 @@ The APIs are:
 Constructors are not public; use the factories. Attributes use the existing schema names:
 `requires-authentication`, `repeatable`, `repeat-name`, and scope fields. Factories validate through
 the same normalizer used by forms, reject duplicate input keys within a step and duplicate step
-keys within one option, and preserve the original schema attributes rather than saving the
+keys within one option, and preserve schema attributes (excluding localized display text) rather than saving the
 runtime-normalized schema. Errors are explicit: invalid schema/non-JSON data raises
 `InvalidArgumentException`; JSON encoding/decoding failures raise `JsonException`.
 
 Snapshot values must be arrays, scalars, or null. Executable rules, closures, objects, and resources
 cannot be stored through these classes; use serializable rule strings. `Input` and `Step`
-factories do not infer rules from type names or labels.
+factories do not infer rules from type names.
 
 ### Save option records and fetch their definitions
 
@@ -471,14 +468,13 @@ use HaithamMaznai\FormStepper\Schema\Requirements;
 $lookup = InputDefinition::updateOrCreate(
     ['key' => 'name'],
     ['definition' => Input::make('name', attributes: [
-        'label' => 'Name',
         'rules' => ['required', 'string'],
     ])->toArray()],
 );
 
 $selectedInput = Input::fromArray($lookup->definition);
 $requirements = Requirements::make(
-    Step::make('contact', [$selectedInput], ['title' => 'Contact']),
+    Step::make('contact', [$selectedInput], ['priority' => 1]),
 );
 
 $inspection->update(['requirements' => $requirements->toArray()]);
@@ -491,7 +487,7 @@ option does not automatically rewrite all saved drafts. Recomputing a draft's se
 loads current option snapshots and retains only compatible values.
 
 You may use application-owned pivot tables to remember which lookup records an editor selected,
-but the runtime snapshot remains self-contained. Reuse stable keys and consistent labels/types
+but the runtime snapshot remains self-contained. Reuse stable keys and consistent rules/types
 when the same input should deduplicate across options.
 
 ### Resolve selected options and merge them
@@ -542,7 +538,7 @@ The same snapshots work for both modes:
   namespace saved values.
 
 For fixed base requirements, your builder can also return
-`Requirements::make(Step::make('contact', [$name]))->toArray()` from `steps()`.
+`Requirements::make(Step::make('contact', [$name]))->toArray()` from `startWithSteps()` / `endWithSteps()`.
 The public option/builder contracts continue returning arrays; call `toArray()` at this boundary
 instead of returning the definition objects directly.
 
@@ -560,8 +556,9 @@ Supported `type` values:
 | `plate` | Application-specific plate input. |
 | `complex` | Nested group of inputs. |
 
-Each input needs a stable `key` and supported `type`. Optional metadata includes `label`,
-`placeholder`, `value`, and `extra`. Choice rendering metadata can be carried in `extra`.
+Each input needs a stable `key` and supported `type`. Optional metadata includes
+`value` (a static display default) and `extra`. Labels and placeholders are resolved from locale
+files, not authored or stored in new schemas. Choice rendering metadata can be carried in `extra`.
 **Types and choice metadata do not enforce allowed values by themselves**: specify Laravel
 validation `rules`, such as `['required', 'in:small,large']` or
 `['required', 'array']` for multiple selections. JSON option schemas should use serializable
@@ -592,7 +589,7 @@ Put one or more fields in a repeatable step:
 ```php
 [
     'key' => 'vehicles',
-    'title' => 'Vehicles',
+    'priority' => 100,
     'repeatable' => true,
     'repeat-name' => 'vehicles',
     'requirements' => [
@@ -724,7 +721,7 @@ application builder. Never trust client-provided requester/tenant IDs without a 
 To prefill requester information, override:
 
 ```php
-public function prefillValues(?\Illuminate\Database\Eloquent\Model $requester): array
+public function prefillValues(?\Illuminate\Database\Eloquent\Model $requester = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): array
 {
     return $requester === null ? [] : [
         'contact-details' => ['name' => $requester->getAttribute('name')],
@@ -734,6 +731,112 @@ public function prefillValues(?\Illuminate\Database\Eloquent\Model $requester): 
 
 Prefill keys must belong to the active schema. On claim, only missing values are filled; existing
 guest answers are preserved.
+
+### Display-only defaults
+
+Unlike `prefillValues()` (which writes draft values), `defaultValues()` is called when a form is
+rendered and never writes to `form_steps`:
+
+```php
+public function defaultValues(?\Illuminate\Database\Eloquent\Model $requester = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): array
+{
+    return [
+        'contact-details' => [
+            'name' => $requester?->getAttribute('name') ?? 'Guest',
+            'address' => ['city' => 'Riyadh'],
+        ],
+        'vehicles' => ['plate' => ''], // defaults for the inputs of each repeat instance
+    ];
+}
+```
+
+Each requirement exposes the display default as `default`; `value` stays null until saved.
+Saved values always remain separate from defaults. Complex children and saved repeat instances
+receive their defaults too. Builder defaults override static schema `value` defaults, including
+an explicit null. Register the builder under `builders` for resumed/listed forms to recalculate
+defaults. Defaults never complete a step or bypass validation; the client must submit values.
+
+### Step priority
+
+Set an integer `priority` on builder steps or library steps:
+
+```php
+Step::make('contact', [$name], ['priority' => 1]);
+Step::make('documents', [], ['priority' => 100]);
+Step::make('confirmation', [], ['priority' => -1]);
+```
+
+Builder hooks define three boundaries: `startWithSteps()`, selected option steps, then
+`endWithSteps()`. Each hook returns a list of raw step definitions; both default to an empty
+list. Priority sorts **within each boundary**, never moves an ending step ahead of option/start
+steps, and a shared step key merges into the group of its first occurrence.
+
+```php
+public function startWithSteps(): array
+{
+    return [Step::make('contact', [], ['priority' => 1])->toArray()];
+}
+
+public function endWithSteps(): array
+{
+    return [Step::make('confirmation', [], ['priority' => -1])->toArray()];
+}
+```
+
+Priority is a **sorting rank**, not a literal array index. Nonnegative ranks sort ascending,
+then negative ranks sort ascending (`-10` before `-1`). Default is `100`, equal priorities keep
+their source order, there are no empty gaps, and the computed review step remains last.
+Steps merged under the same key must have the same priority or a schema conflict is reported.
+Ordering affects both stepper navigation and single-mode container order.
+
+### Localized input and step text
+
+```bash
+php artisan vendor:publish --tag=form-stepper-lang
+```
+
+Edit `lang/vendor/form-stepper/en/forms.php` (or the application's configured language directory).
+Create the corresponding file for each locale, e.g. `ar/forms.php`. Rendering uses Laravel `__()`
+and the current application locale; text is not saved in the form schema.
+
+```php
+return [
+    'defaults' => [
+        'inputs' => [
+            'name' => ['label' => 'Name', 'placeholder' => 'Enter your name'],
+        ],
+        'steps' => [
+            'contact-details' => ['title' => 'Contact information', 'subtitle' => 'Your details'],
+            'review' => ['title' => 'Review'],
+        ],
+    ],
+    'contexts' => [
+        'order' => [                     // form type, not input type
+            'stepper' => [               // or single
+                'customer' => [          // stored requester morph type, or guest
+                    'team' => [          // stored tenant morph type, or none
+                        'inputs' => [
+                            'name' => ['label' => 'Customer name', 'placeholder' => 'Full name'],
+                        ],
+                        'steps' => [
+                            'contact-details' => ['title' => 'Customer details'],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
+];
+```
+
+Lookup order is current-locale context, current-locale shared defaults, then the same two paths
+in the fallback locale. Missing label/title uses a readable key; missing placeholder/subtitle is
+null. Each attribute falls back independently. Keys use stored morph aliases, not requester IDs.
+Encode each segment with `str_replace('.', '%2E', rawurlencode($segment))` if it contains dots,
+backslashes, or other special characters (e.g. `App\Models\User` becomes `App%5CModels%5CUser`).
+API fields `label`, `placeholder`, `title`, and `subtitle` remain present, but their values are
+translated at render time. Legacy schema text is ignored. Choice option labels in `extra.options`
+are separate metadata and are not changed by this feature.
 
 ## JSON API
 
@@ -978,10 +1081,10 @@ application needs a `login` route. Run `php artisan route:clear` if routes are c
 - **Input types**: create custom types (e.g. `signature`) with an optional `has_options` flag.
   Custom keys are accepted by `Input::make()` and schema validation immediately. A type used by
   an input cannot be deleted.
-- **Lookup inputs**: key, label, type, placeholder, rules (one per line or `|`-separated;
+- **Lookup inputs**: key, type, rules (one per line or `|`-separated;
   `regex:` lines are kept whole), options as `value|label` lines, default value (JSON or text),
   and an `extra` JSON object. `complex` inputs select ordered children; cycles are rejected.
-- **Library steps**: key (`review` is reserved), title, subtitle, authentication flag,
+- **Library steps**: key (`review` is reserved), priority, authentication flag,
   repeatable flag with `repeat_name`, and ordered inputs (position numbers).
 
 Use the library to build option requirements. Steps and inputs are **snapshotted** into the option
@@ -997,7 +1100,7 @@ $contact = FormStepTemplate::where('key', 'contact')->firstOrFail();
 $vehicle = FormInput::where('key', 'vehicle')->firstOrFail();
 
 $inspection->update(['requirements' => Requirements::make(
-    $contact->toStep(['title' => 'Contact details']), // attributes override the template
+    $contact->toStep(['priority' => 1]), // attributes override the template
     Step::make('vehicle', [$vehicle->toInput()]),
 )->toArray()]);
 ```
@@ -1039,6 +1142,20 @@ Published views override package views automatically (`form-stepper::admin.*`).
 ## Upgrading existing installations
 
 **Back up the database first. Do not run `migrate:fresh` against application data.**
+
+For existing library tables, copy only `2026_10_08_000000_add_library_step_priority.php`
+using a timestamp after the library migration, then run `php artisan migrate`. It adds priority
+100 to existing steps and preserves all records and old display-text columns. Those legacy
+columns are no longer read or edited; move their text into locale files. Fresh library installs
+do not create those display-text columns.
+
+Remove `label`/`placeholder` from input authoring and `title`/`subtitle` from step authoring.
+Rename builder `steps()` overrides to `startWithSteps()`; `steps()` has been removed, and the
+assembler no longer calls it. Move ending groups into `endWithSteps()`.
+Update published admin views/controllers for priority and localized text. Existing option/form
+snapshots are not rewritten automatically: rebuild option snapshots and recompute draft options
+to apply priority ordering. Submitted forms retain their original order; localized text and
+display-only defaults are resolved live for all forms.
 
 The new migration is `database/migrations/2026_10_06_000000_update_form_ownership.php`.
 On **Laravel 10 with SQLite**, install `composer require doctrine/dbal:^3.9` before running

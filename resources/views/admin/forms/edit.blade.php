@@ -49,7 +49,9 @@
                             @foreach ($step['requirements'] ?? [] as $requirement)
                                 @include('form-stepper::admin.forms._field', [
                                     'requirement' => $requirement,
-                                    'value' => $stepValues[$requirement['key']] ?? null,
+                                    'value' => array_key_exists($requirement['key'], $stepValues)
+                                        ? $stepValues[$requirement['key']]
+                                        : ($requirement['value'] ?? null),
                                     'stepKey' => $step['key'],
                                 ])
                             @endforeach

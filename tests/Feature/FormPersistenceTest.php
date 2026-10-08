@@ -47,7 +47,7 @@ it('persists step values and resumes a draft after loading it again', function (
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -89,7 +89,7 @@ it('preserves values for unchanged steps when selected options are recomputed', 
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -124,7 +124,7 @@ it('creates and resumes a guest draft through the JSON API with its resume token
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -169,7 +169,7 @@ it('stores builder-provided requester values as a draft prefill', function () {
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -179,7 +179,7 @@ it('stores builder-provided requester values as a draft prefill', function () {
             ]];
         }
 
-        public function prefillValues(?Model $requester): array
+        public function prefillValues(?Model $requester = null, ?Model $tenant = null): array
         {
             return ['applicant' => ['name' => $requester?->getAttribute('name')]];
         }
@@ -298,7 +298,7 @@ it('fills missing guest draft values after login without overwriting entered val
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -309,7 +309,7 @@ it('fills missing guest draft values after login without overwriting entered val
             ]];
         }
 
-        public function prefillValues(?Model $requester): array
+        public function prefillValues(?Model $requester = null, ?Model $tenant = null): array
         {
             return $requester === null
                 ? []
@@ -345,7 +345,7 @@ it('adds authenticated-only steps when a guest draft is claimed after login', fu
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [
                 [
@@ -366,7 +366,7 @@ it('adds authenticated-only steps when a guest draft is claimed after login', fu
             ];
         }
 
-        public function prefillValues(?Model $requester): array
+        public function prefillValues(?Model $requester = null, ?Model $tenant = null): array
         {
             return $requester === null
                 ? []
@@ -407,7 +407,7 @@ it('does not require authentication for steps outside the active form type scope
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [
                 ['key' => 'guest-details'],
@@ -430,6 +430,7 @@ it('does not require authentication for steps outside the active form type scope
 });
 
 it('rejects values outside the active input schema without advancing the draft', function () {
+    config()->set('form-stepper.throw_on_extra_values', true);
     $builder = new class extends FormBuilder
     {
         public function formType(): string
@@ -442,7 +443,7 @@ it('rejects values outside the active input schema without advancing the draft',
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',
@@ -462,6 +463,16 @@ it('rejects values outside the active input schema without advancing the draft',
 
     expect($created['form']->refresh()->current_step_id)->toBe('applicant')
         ->and($created['form']->steps()->count())->toBe(0);
+
+    config()->set('form-stepper.throw_on_extra_values', false);
+    app(FormService::class)->saveStep(
+        $created['form'],
+        'applicant',
+        ['name' => 'Ada', 'admin' => true],
+    );
+
+    expect($created['form']->refresh()->current_step_id)->toBe('review')
+        ->and($created['form']->steps()->firstOrFail()->values)->toBe(['name' => 'Ada']);
 });
 
 it('requires authentication on explicitly gated steps', function () {
@@ -477,7 +488,7 @@ it('requires authentication on explicitly gated steps', function () {
             return 'stepper';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'account',
@@ -510,7 +521,7 @@ it('stores and completes all step values for a single-mode form in one submissio
             return 'single';
         }
 
-        public function steps(): array
+        public function startWithSteps(): array
         {
             return [[
                 'key' => 'applicant',

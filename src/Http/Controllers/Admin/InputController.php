@@ -21,8 +21,7 @@ class InputController extends AdminController
         $query = FormInput::query()->withCount(['stepTemplates', 'parents'])->orderBy('key');
 
         if (is_string($search = $request->query('q')) && $search !== '') {
-            $query->where(fn (Builder $where): Builder => $where->where('key', 'like', "%{$search}%")
-                ->orWhere('label', 'like', "%{$search}%"));
+            $query->where('key', 'like', "%{$search}%");
         }
 
         if (is_string($type = $request->query('type')) && $type !== '') {
@@ -99,10 +98,8 @@ class InputController extends AdminController
                 'regex:/^[A-Za-z0-9_][A-Za-z0-9_.-]*$/',
                 Rule::unique($input->getTable(), 'key')->ignore($input->exists ? $input : null),
             ],
-            'label' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'string', Rule::exists((new FormInputType)->getTable(), 'key')],
             'rules' => ['nullable', 'string', 'max:5000'],
-            'placeholder' => ['nullable', 'string', 'max:255'],
             'default_value' => ['nullable', 'string', 'max:5000'],
             'options' => ['nullable', 'string', 'max:20000'],
             'extra' => ['nullable', 'string', 'max:20000'],
@@ -120,10 +117,8 @@ class InputController extends AdminController
 
         $attributes = [
             'key' => $data['key'],
-            'label' => $data['label'] ?? null,
             'type' => $data['type'],
             'rules' => $this->rules($data['rules'] ?? null),
-            'placeholder' => $data['placeholder'] ?? null,
             'default_value' => $this->defaultValue($data['default_value'] ?? null),
             'options' => $this->options($data['options'] ?? null),
             'extra' => $extra,

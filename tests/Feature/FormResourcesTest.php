@@ -20,7 +20,7 @@ class ResourceTestBuilder extends FormBuilder
         return 'stepper';
     }
 
-    public function steps(): array
+    public function startWithSteps(): array
     {
         return [
             [

@@ -7,6 +7,8 @@ namespace HaithamMaznai\FormStepper\Http\Controllers\Admin;
 use HaithamMaznai\FormStepper\Forms\FormBuilderRegistry;
 use HaithamMaznai\FormStepper\Models\Form;
 use HaithamMaznai\FormStepper\Services\FormService;
+use HaithamMaznai\FormStepper\Support\FormOwnership;
+use HaithamMaznai\FormStepper\Support\FormPresentation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,7 +77,7 @@ class FormController extends AdminController
         return $this->view('form-stepper::admin.forms.show', [
             'form' => $form,
             'values' => $form->valuesByStep(),
-            'steps' => $form->definition['steps'] ?? [],
+            'steps' => $this->presentedSteps($form),
         ]);
     }
 
@@ -90,7 +92,7 @@ class FormController extends AdminController
         return $this->view('form-stepper::admin.forms.edit', [
             'form' => $form,
             'values' => $form->valuesByStep(),
-            'steps' => $form->definition['steps'] ?? [],
+            'steps' => $this->presentedSteps($form),
             'optionKeys' => $form->selectedOptions->pluck('option_key')->implode(', '),
         ]);
     }
@@ -106,6 +108,21 @@ class FormController extends AdminController
         );
 
         return $this->redirectTo('forms.edit', $form, 'Form options updated.');
+    }
+
+    /** @return list<array<string, mixed>> */
+    protected function presentedSteps(Form $form): array
+    {
+        $defaults = $this->builders->resolve($form->type)->defaultValues(
+            $form->requester,
+            FormOwnership::tenantEnabled() ? $form->tenant : null,
+        );
+        $presentation = app(FormPresentation::class);
+
+        return array_values(array_map(
+            static fn (array $step): array => $presentation->step($form, $step, $defaults[$step['key']] ?? []),
+            $form->definition['steps'] ?? [],
+        ));
     }
 
     public function updateStep(Request $request, Form $form, string $stepKey): RedirectResponse

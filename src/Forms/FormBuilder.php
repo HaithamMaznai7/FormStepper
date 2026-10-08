@@ -20,7 +20,13 @@ abstract class FormBuilder
     /**
      * @return list<array<string, mixed>>
      */
-    public function steps(): array
+    public function startWithSteps(): array
+    {
+        return [];
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function endWithSteps(): array
     {
         return [];
     }
@@ -101,7 +107,13 @@ abstract class FormBuilder
      *
      * @return array<string, array<string, mixed>>
      */
-    public function prefillValues(?Model $requester): array
+    public function prefillValues(?Model $requester = null, ?Model $tenant = null): array
+    {
+        return [];
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function defaultValues(?Model $requester = null, ?Model $tenant = null): array
     {
         return [];
     }
