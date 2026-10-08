@@ -1,5 +1,10 @@
 # Release Notes
 
+## Statable Version v1.1.5 - 2026-10-08
+
+<!-- Release notes generated using configuration in .github/release.yml at v1.1.5 -->
+**Full Changelog**: https://github.com/HaithamMaznai7/FormStepper/compare/v1.1.4...v1.1.5
+
 ## v1.1.5 - 2026-10-08
 
 - Replace builder `steps()` with `startWithSteps()` and `endWithSteps()`, preserving start,
